@@ -17,13 +17,13 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js" defer></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
 
     <meta name="description" content="0x00 前言在常规的自动化渗透测试中，安全工具高度依赖目标系统的默认特征库。然而在真实的攻防场景下，防御方常通过改变默认配置（如重命名高危目录）来实施特征隐藏（Security through Obscurity），从而规避扫描。 本次实战记录了一次针对 Windows 11 平台上 WordPress 靶机的黑盒测试过程。本文详细复盘了在常规扫描器漏报的情况下，如何通过调整 Fuzzing 策">
 <meta property="og:type" content="article">
 <meta property="og:title" content="黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程">
 <meta property="og:url" content="http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/index.html">
-<meta property="og:site_name" content="Hexo">
+<meta property="og:site_name" content="smile cat 的博客">
 <meta property="og:description" content="0x00 前言在常规的自动化渗透测试中，安全工具高度依赖目标系统的默认特征库。然而在真实的攻防场景下，防御方常通过改变默认配置（如重命名高危目录）来实施特征隐藏（Security through Obscurity），从而规避扫描。 本次实战记录了一次针对 Windows 11 平台上 WordPress 靶机的黑盒测试过程。本文详细复盘了在常规扫描器漏报的情况下，如何通过调整 Fuzzing 策">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://example.com/images/blog1/1.png">
@@ -54,7 +54,7 @@
 <script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/","path":"2026/05/10/黑盒测试复盘：突破隐蔽目录的-WP-File-Manager-漏洞利用全过程/","title":"黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | Hexo</title>
+<title>黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | smile cat 的博客</title>
   
 
 
@@ -68,7 +68,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
 <script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
 
-  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
 
 
 
@@ -94,6 +96,9 @@
       <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
   <div class="site-nav-toggle">
     <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
     </div>
   </div>
 
@@ -101,22 +106,53 @@
 
     <a href="/" class="brand" rel="start">
       <i class="logo-line"></i>
-      <p class="site-title">Hexo</p>
+      <p class="site-title">smile cat 的博客</p>
       <i class="logo-line"></i>
     </a>
   </div>
 
   <div class="site-nav-right">
     <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
     </div>
   </div>
 </div>
 
 
 
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
 
 
 
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </header>
         
@@ -142,6 +178,8 @@
 
         <div class="site-overview-wrap sidebar-panel">
           <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="smile cat"
+      src="/images/wxm.jpg">
   <p class="site-author-name" itemprop="name">smile cat</p>
   <div class="site-description" itemprop="description"></div>
 </div>
@@ -149,17 +187,19 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-count">3</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
+          <a href="/categories/">
         <span class="site-state-item-count">2</span>
-        <span class="site-state-item-name">分类</span>
+        <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">7</span>
-        <span class="site-state-item-name">标签</span>
+          <a href="/tags/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
 </div>
@@ -188,17 +228,17 @@
     <link itemprop="mainEntityOfPage" href="http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="image" content="/images/wxm.jpg">
       <meta itemprop="name" content="smile cat">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
+      <meta itemprop="name" content="smile cat 的博客">
       <meta itemprop="description" content="">
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | Hexo">
+      <meta itemprop="name" content="黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | smile cat 的博客">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
@@ -398,7 +438,7 @@
     </span>
     <span class="author" itemprop="copyrightHolder">smile cat</span>
   </div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
 
     </div>
