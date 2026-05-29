@@ -17,26 +17,26 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxm777.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"github","dark":"atom-one-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"show_result":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
 
     <meta name="description" content="0x00 前言在常规的自动化渗透测试中，安全工具高度依赖目标系统的默认特征库。然而在真实的攻防场景下，防御方常通过改变默认配置（如重命名高危目录）来实施特征隐藏（Security through Obscurity），从而规避扫描。 本次实战记录了一次针对 Windows 11 平台上 WordPress 靶机的黑盒测试过程。本文详细复盘了在常规扫描器漏报的情况下，如何通过调整 Fuzzing 策">
 <meta property="og:type" content="article">
 <meta property="og:title" content="黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程">
-<meta property="og:url" content="http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/index.html">
-<meta property="og:site_name" content="smile cat 的博客">
+<meta property="og:url" content="https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/index.html">
+<meta property="og:site_name" content="smile cat的博客">
 <meta property="og:description" content="0x00 前言在常规的自动化渗透测试中，安全工具高度依赖目标系统的默认特征库。然而在真实的攻防场景下，防御方常通过改变默认配置（如重命名高危目录）来实施特征隐藏（Security through Obscurity），从而规避扫描。 本次实战记录了一次针对 Windows 11 平台上 WordPress 靶机的黑盒测试过程。本文详细复盘了在常规扫描器漏报的情况下，如何通过调整 Fuzzing 策">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://example.com/images/blog1/1.png">
-<meta property="og:image" content="http://example.com/images/blog1/2.png">
-<meta property="og:image" content="http://example.com/images/blog1/3.png">
-<meta property="og:image" content="http://example.com/images/blog1/4.png">
-<meta property="og:image" content="http://example.com/images/blog1/5.png">
-<meta property="og:image" content="http://example.com/images/blog1/6.png">
-<meta property="og:image" content="http://example.com/images/blog1/7.png">
-<meta property="og:image" content="http://example.com/images/blog1/8.png">
-<meta property="og:image" content="http://example.com/images/blog1/11.png">
-<meta property="og:image" content="http://example.com/images/blog1/9.png">
-<meta property="og:image" content="http://example.com/images/blog1/10.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/1.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/2.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/3.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/4.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/5.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/6.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/7.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/8.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/11.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/9.png">
+<meta property="og:image" content="https://wxm777.github.io/images/blog1/10.png">
 <meta property="article:published_time" content="2026-05-10T02:00:00.000Z">
 <meta property="article:modified_time" content="2026-05-22T06:04:20.987Z">
 <meta property="article:author" content="smile cat">
@@ -45,16 +45,16 @@
 <meta property="article:tag" content="漏洞复现">
 <meta property="article:tag" content="目录爆破">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/images/blog1/1.png">
+<meta name="twitter:image" content="https://wxm777.github.io/images/blog1/1.png">
 
 
-<link rel="canonical" href="http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
+<link rel="canonical" href="https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/","path":"2026/05/10/黑盒测试复盘：突破隐蔽目录的-WP-File-Manager-漏洞利用全过程/","title":"黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/","path":"2026/05/10/黑盒测试复盘：突破隐蔽目录的-WP-File-Manager-漏洞利用全过程/","title":"黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | smile cat 的博客</title>
+<title>黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | smile cat的博客</title>
   
 
 
@@ -106,7 +106,7 @@
 
     <a href="/" class="brand" rel="start">
       <i class="logo-line"></i>
-      <p class="site-title">smile cat 的博客</p>
+      <p class="site-title">smile cat的博客</p>
       <i class="logo-line"></i>
     </a>
   </div>
@@ -203,6 +203,11 @@
       </div>
   </nav>
 </div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wxm777" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wxm777" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
 
         </div>
       </div>
@@ -225,7 +230,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
+    <link itemprop="mainEntityOfPage" href="https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/wxm.jpg">
@@ -233,12 +238,12 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="smile cat 的博客">
+      <meta itemprop="name" content="smile cat的博客">
       <meta itemprop="description" content="">
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | smile cat 的博客">
+      <meta itemprop="name" content="黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | smile cat的博客">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
@@ -455,6 +460,7 @@
     <i class="fa fa-arrow-up fa-lg"></i>
     <span>0%</span>
   </div>
+  <div class="reading-progress-bar"></div>
 
 <noscript>
   <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>

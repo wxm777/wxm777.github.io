@@ -1,6 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>HawkEye-Scanner：纯离线 JWT 弱密钥高并发探测器</title>
+    <url>/2026/05/22/HawkEye-Scanner%EF%BC%9A%E7%BA%AF%E7%A6%BB%E7%BA%BF%20JWT%20%E5%BC%B1%E5%AF%86%E9%92%A5%E9%AB%98%E5%B9%B6%E5%8F%91%E6%8E%A2%E6%B5%8B%E5%99%A8/</url>
+    <content><![CDATA[<p>在微服务大行其道的今天，JWT (RFC 7519) 已经成为 API 鉴权的基础设施。然而，在针对大规模资产进行鉴权基线审计时，如何构建一个既具备深度探测能力，又能在脏数据中稳定存活的扫描工具，始终是安全研发的一道工程考题。</p>
+<p>本文将复盘 HawkEye-Scanner 的核心设计逻辑，探讨如何摒弃臃肿的第三方框架，通过对密码学原理的拆解与底层字节流的严格管控，打造一款高并发、零崩溃的离线审计引擎。</p>
+<h2 id="0x01-破题与痛点：在线爆破的穷途末路与高级库的脆弱"><a href="#0x01-破题与痛点：在线爆破的穷途末路与高级库的脆弱" class="headerlink" title="0x01 破题与痛点：在线爆破的穷途末路与高级库的脆弱"></a>0x01 破题与痛点：在线爆破的穷途末路与高级库的脆弱</h2><p>在实战渗透中，针对鉴权接口的传统在线爆破（Online Brute-force）早已失效。现代架构下的 WAF、API 网关限流以及动态验证码，足以将任何在线枚举行为扼杀在摇篮里。因此，获取 Token 后的“离线破解”成为了唯一可行的路径。</p>
+<p>但在开发离线扫描器时，很多开发者习惯直接引入 <code>PyJWT</code> 等高级封装库来处理解析和校验。这种高度依赖上层 API 的做法在实验室环境中运行良好，一旦投入真实的复杂网络环境，就会暴露致命的工程缺陷：<strong>极差的容错率</strong>。</p>
+<p>真实业务线返回的数据包往往充满不可预期的脏数据。一旦抓取到结构残缺、Base64Url Padding 丢失或带有 <code>None</code> 算法标识的畸形 JWT，高级库会在反序列化阶段直接抛出未捕获的异常（如 <code>DecodeError</code>）。如果不做极其繁琐的异常捕获，整个高并发扫描队列会在遇到第一个畸形 Payload 时直接崩溃中断。</p>
+<p>为了保障高并发环境下的绝对稳定性，我们需要造一个更底层的轮子。</p>
+<h2 id="0x02-核心原理：HS256-离线字典碰撞的本质"><a href="#0x02-核心原理：HS256-离线字典碰撞的本质" class="headerlink" title="0x02 核心原理：HS256 离线字典碰撞的本质"></a>0x02 核心原理：HS256 离线字典碰撞的本质</h2><p>抛开各种封装好的类库，JWT 的结构极其简单：<code>Base64Url(Header) . Base64Url(Payload) . Signature</code>。</p>
+<p>在大多数未严格配置的业务线中，开发者常采用 HS256（HMAC-SHA256）作为签名算法。HS256 是一种对称加密方案，意味着签发 Token 和验证 Token 使用的是同一个 Secret Key。如果这个 Key 是诸如 <code>123456</code> 或 <code>admin123</code> 的弱口令，整个鉴权体系就会瞬间土崩瓦解。</p>
+<p>HawkEye-Scanner 的核心探测逻辑即建立在此之上。我们在获取到目标 JWT 后，完全切断与服务器的交互，在本地利用 <code>.txt</code> 弱口令字典进行离线重组：</p>
+<ol>
+<li>提取原始 Token 的 <code>Header</code> 和 <code>Payload</code> 部分。</li>
+<li>遍历本地字典，将字典中的密码作为 Secret Key。</li>
+<li>使用 HMAC-SHA256 算法，对 <code>Header.Payload</code> 重新计算签名。</li>
+<li>将计算出的签名进行 Base64Url 编码，并与原始 Token 的第三部分（<code>Signature</code>）进行精确的字符串比对。</li>
+</ol>
+<p>一旦比对成功，即意味着本地命中了目标服务器的 Secret Key。由于纯离线运算，这套机制规避了所有基于流量的网络防护规则。</p>
+<h2 id="0x03-底层重构：容错机制与字节流的精确管控"><a href="#0x03-底层重构：容错机制与字节流的精确管控" class="headerlink" title="0x03 底层重构：容错机制与字节流的精确管控"></a>0x03 底层重构：容错机制与字节流的精确管控</h2><p>离线碰撞的逻辑虽然清晰，但要保证它在面对成千上万个格式各异的 Token时不崩溃，必须将数据清洗下沉到最底层的字节流（Bytes）级别。</p>
+<p><strong>处理 Base64Url 的协议变种与截断</strong><br>JWT 规范为了保证 URL 传输安全，采用了 Base64Url 变种（将 <code>+</code> 替换为 <code>-</code>，<code>/</code> 替换为 <code>_</code>），并强制去除了末尾的 <code>=</code> 填充符（Padding）。<br>然而，Python 标准库的解码器具有严格的长度校验机制。如果直接喂入截断后的数据，必定触发 <code>binascii.Error: Incorrect padding</code>。为了实现高可用解析，引擎在底层接管了清洗工作：通过 <code>len(data) % 4</code> 动态计算缺失长度，手动补齐 <code>=</code> 号，确保畸形数据在进入反序列化前已被标准化。</p>
+<p><strong>严控 String 与 Bytes 的边界转换</strong><br>在进行 HMAC 碰撞时，密码学底层接口（如 <code>hmac.new()</code>）是极其严苛的，它只接受二进制机器字节流（Bytes），而拒绝抽象的字符串（String）。<br>为了避免隐式类型推导带来的运行时崩溃，工具在调度中严格把控了变量的物理形态：<br>在进入加密引擎前，通过 <code>.encode(&#39;utf-8&#39;)</code> 将所有字符串显式转换为底层字节流；在摘要生成后，再次通过 <code>.decode(&#39;utf-8&#39;)</code> 将二进制数据反序列化为人类可读的字符串，以进行最终的哈希比对。这种隔离设计，从根本上消灭了类型不匹配导致的程序异常。</p>
+<h2 id="0x04-架构演进与实测闭环"><a href="#0x04-架构演进与实测闭环" class="headerlink" title="0x04 架构演进与实测闭环"></a>0x04 架构演进与实测闭环</h2><p>在完成了坚实的底层算力建设后，我们将目光转向了调度层的并发性能。</p>
+<p>面对海量资产，传统的单线程同步 I&#x2F;O 极其低效。HawkEye-Scanner 引入了 <code>ThreadPoolExecutor</code> 并发模型，将“网络请求（抓取 Token）”与“CPU 计算（离线碰撞）”在流水线中进行异步映射。通过配置 50 线程池，成功打破了网络 I&#x2F;O 阻塞。</p>
+<p>与此同时，我们在网络层引入了极端的防御性编程（Defensive Programming）。面对不同业务团队千奇百怪的 JSON 返回格式，采用链式 <code>.get()</code> 提取目标字段；并对整个发包与解析模块实施了异常静默（Swallow Exception）。这意味着，无论目标 IP 超时、端口拒绝还是返回了无法解析的乱码，异常线程都会被安全抛弃并释放资源，绝不将错误传递给主线程。</p>
+<p><strong>实测验证</strong><br>在研发末期，我基于 Flask 框架搭建了本地微服务靶机。在 50 线程的高压测试下，引擎稳定完成了“自动化并发发包 -&gt; 脏数据脱壳 -&gt; 内存级离线碰撞”的 DAST 闭环，实现了 0% 的崩溃率，并在毫秒级内成功从字典中碰撞出漏洞靶机的弱口令。</p>
+<p><img src="/images/blog2/1.png" alt="图1：VS Code 控制台高并发模式下成功击穿本地 Flask 靶场截图"></p>
+<p>安全工具的工程化本质，是寻找运行效率、架构鲁棒性与密码学底层原理之间的最佳平衡。本项目的核心模块已完成工程化解耦，完整源码已开源至 GitHub：<a href="https://github.com/wxm777/HawkEye-Scanner">HawkEye-Scanner</a>。</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+      </categories>
+      <tags>
+        <tag>漏洞/JWT安全</tag>
+        <tag>架构设计</tag>
+        <tag>Python并发编程</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>AI 安全学习笔记：如何用 Python 实现大模型漏洞的高并发探测</title>
     <url>/2026/05/29/AI%20%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%9A%E5%A6%82%E4%BD%95%E7%94%A8%20Python%20%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%BC%8F%E6%B4%9E%E7%9A%84%E9%AB%98%E5%B9%B6%E5%8F%91%E6%8E%A2%E6%B5%8B/</url>
     <content><![CDATA[<p>最近在看大模型（LLM）安全方面的内容，主要是提示词注入（Prompt Injection）。平时在网页端手动去测几次还能应付，但要想批量测几十上百条不同的 prompt，或者做高并发测试，手动复制粘贴效率实在太低了。</p>
@@ -57,44 +95,6 @@
         <tag>Prompt Injection</tag>
         <tag>Python</tag>
         <tag>异步编程</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>HawkEye-Scanner：纯离线 JWT 弱密钥高并发探测器</title>
-    <url>/2026/05/22/HawkEye-Scanner%EF%BC%9A%E7%BA%AF%E7%A6%BB%E7%BA%BF%20JWT%20%E5%BC%B1%E5%AF%86%E9%92%A5%E9%AB%98%E5%B9%B6%E5%8F%91%E6%8E%A2%E6%B5%8B%E5%99%A8/</url>
-    <content><![CDATA[<p>在微服务大行其道的今天，JWT (RFC 7519) 已经成为 API 鉴权的基础设施。然而，在针对大规模资产进行鉴权基线审计时，如何构建一个既具备深度探测能力，又能在脏数据中稳定存活的扫描工具，始终是安全研发的一道工程考题。</p>
-<p>本文将复盘 HawkEye-Scanner 的核心设计逻辑，探讨如何摒弃臃肿的第三方框架，通过对密码学原理的拆解与底层字节流的严格管控，打造一款高并发、零崩溃的离线审计引擎。</p>
-<h2 id="0x01-破题与痛点：在线爆破的穷途末路与高级库的脆弱"><a href="#0x01-破题与痛点：在线爆破的穷途末路与高级库的脆弱" class="headerlink" title="0x01 破题与痛点：在线爆破的穷途末路与高级库的脆弱"></a>0x01 破题与痛点：在线爆破的穷途末路与高级库的脆弱</h2><p>在实战渗透中，针对鉴权接口的传统在线爆破（Online Brute-force）早已失效。现代架构下的 WAF、API 网关限流以及动态验证码，足以将任何在线枚举行为扼杀在摇篮里。因此，获取 Token 后的“离线破解”成为了唯一可行的路径。</p>
-<p>但在开发离线扫描器时，很多开发者习惯直接引入 <code>PyJWT</code> 等高级封装库来处理解析和校验。这种高度依赖上层 API 的做法在实验室环境中运行良好，一旦投入真实的复杂网络环境，就会暴露致命的工程缺陷：<strong>极差的容错率</strong>。</p>
-<p>真实业务线返回的数据包往往充满不可预期的脏数据。一旦抓取到结构残缺、Base64Url Padding 丢失或带有 <code>None</code> 算法标识的畸形 JWT，高级库会在反序列化阶段直接抛出未捕获的异常（如 <code>DecodeError</code>）。如果不做极其繁琐的异常捕获，整个高并发扫描队列会在遇到第一个畸形 Payload 时直接崩溃中断。</p>
-<p>为了保障高并发环境下的绝对稳定性，我们需要造一个更底层的轮子。</p>
-<h2 id="0x02-核心原理：HS256-离线字典碰撞的本质"><a href="#0x02-核心原理：HS256-离线字典碰撞的本质" class="headerlink" title="0x02 核心原理：HS256 离线字典碰撞的本质"></a>0x02 核心原理：HS256 离线字典碰撞的本质</h2><p>抛开各种封装好的类库，JWT 的结构极其简单：<code>Base64Url(Header) . Base64Url(Payload) . Signature</code>。</p>
-<p>在大多数未严格配置的业务线中，开发者常采用 HS256（HMAC-SHA256）作为签名算法。HS256 是一种对称加密方案，意味着签发 Token 和验证 Token 使用的是同一个 Secret Key。如果这个 Key 是诸如 <code>123456</code> 或 <code>admin123</code> 的弱口令，整个鉴权体系就会瞬间土崩瓦解。</p>
-<p>HawkEye-Scanner 的核心探测逻辑即建立在此之上。我们在获取到目标 JWT 后，完全切断与服务器的交互，在本地利用 <code>.txt</code> 弱口令字典进行离线重组：</p>
-<ol>
-<li>提取原始 Token 的 <code>Header</code> 和 <code>Payload</code> 部分。</li>
-<li>遍历本地字典，将字典中的密码作为 Secret Key。</li>
-<li>使用 HMAC-SHA256 算法，对 <code>Header.Payload</code> 重新计算签名。</li>
-<li>将计算出的签名进行 Base64Url 编码，并与原始 Token 的第三部分（<code>Signature</code>）进行精确的字符串比对。</li>
-</ol>
-<p>一旦比对成功，即意味着本地命中了目标服务器的 Secret Key。由于纯离线运算，这套机制规避了所有基于流量的网络防护规则。</p>
-<h2 id="0x03-底层重构：容错机制与字节流的精确管控"><a href="#0x03-底层重构：容错机制与字节流的精确管控" class="headerlink" title="0x03 底层重构：容错机制与字节流的精确管控"></a>0x03 底层重构：容错机制与字节流的精确管控</h2><p>离线碰撞的逻辑虽然清晰，但要保证它在面对成千上万个格式各异的 Token时不崩溃，必须将数据清洗下沉到最底层的字节流（Bytes）级别。</p>
-<p><strong>处理 Base64Url 的协议变种与截断</strong><br>JWT 规范为了保证 URL 传输安全，采用了 Base64Url 变种（将 <code>+</code> 替换为 <code>-</code>，<code>/</code> 替换为 <code>_</code>），并强制去除了末尾的 <code>=</code> 填充符（Padding）。<br>然而，Python 标准库的解码器具有严格的长度校验机制。如果直接喂入截断后的数据，必定触发 <code>binascii.Error: Incorrect padding</code>。为了实现高可用解析，引擎在底层接管了清洗工作：通过 <code>len(data) % 4</code> 动态计算缺失长度，手动补齐 <code>=</code> 号，确保畸形数据在进入反序列化前已被标准化。</p>
-<p><strong>严控 String 与 Bytes 的边界转换</strong><br>在进行 HMAC 碰撞时，密码学底层接口（如 <code>hmac.new()</code>）是极其严苛的，它只接受二进制机器字节流（Bytes），而拒绝抽象的字符串（String）。<br>为了避免隐式类型推导带来的运行时崩溃，工具在调度中严格把控了变量的物理形态：<br>在进入加密引擎前，通过 <code>.encode(&#39;utf-8&#39;)</code> 将所有字符串显式转换为底层字节流；在摘要生成后，再次通过 <code>.decode(&#39;utf-8&#39;)</code> 将二进制数据反序列化为人类可读的字符串，以进行最终的哈希比对。这种隔离设计，从根本上消灭了类型不匹配导致的程序异常。</p>
-<h2 id="0x04-架构演进与实测闭环"><a href="#0x04-架构演进与实测闭环" class="headerlink" title="0x04 架构演进与实测闭环"></a>0x04 架构演进与实测闭环</h2><p>在完成了坚实的底层算力建设后，我们将目光转向了调度层的并发性能。</p>
-<p>面对海量资产，传统的单线程同步 I&#x2F;O 极其低效。HawkEye-Scanner 引入了 <code>ThreadPoolExecutor</code> 并发模型，将“网络请求（抓取 Token）”与“CPU 计算（离线碰撞）”在流水线中进行异步映射。通过配置 50 线程池，成功打破了网络 I&#x2F;O 阻塞。</p>
-<p>与此同时，我们在网络层引入了极端的防御性编程（Defensive Programming）。面对不同业务团队千奇百怪的 JSON 返回格式，采用链式 <code>.get()</code> 提取目标字段；并对整个发包与解析模块实施了异常静默（Swallow Exception）。这意味着，无论目标 IP 超时、端口拒绝还是返回了无法解析的乱码，异常线程都会被安全抛弃并释放资源，绝不将错误传递给主线程。</p>
-<p><strong>实测验证</strong><br>在研发末期，我基于 Flask 框架搭建了本地微服务靶机。在 50 线程的高压测试下，引擎稳定完成了“自动化并发发包 -&gt; 脏数据脱壳 -&gt; 内存级离线碰撞”的 DAST 闭环，实现了 0% 的崩溃率，并在毫秒级内成功从字典中碰撞出漏洞靶机的弱口令。</p>
-<p><img src="/images/blog2/1.png" alt="图1：VS Code 控制台高并发模式下成功击穿本地 Flask 靶场截图"></p>
-<p>安全工具的工程化本质，是寻找运行效率、架构鲁棒性与密码学底层原理之间的最佳平衡。本项目的核心模块已完成工程化解耦，完整源码已开源至 GitHub：<a href="https://github.com/wxm777/HawkEye-Scanner">HawkEye-Scanner</a>。</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-      </categories>
-      <tags>
-        <tag>漏洞/JWT安全</tag>
-        <tag>架构设计</tag>
-        <tag>Python并发编程</tag>
       </tags>
   </entry>
   <entry>
