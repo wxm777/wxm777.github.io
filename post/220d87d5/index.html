@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxm777.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"tokyo-night-dark","dark":"tokyo-night-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"show_result":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="0x00 前言文件上传漏洞的报告里，最常见的话术是”存在未授权上传，可上传任意文件，建议尽快修复”。但”能传”和”能利用”之间隔着三个问题：文件落没落盘？路径可不可控？Web 可不可达？任何一个答案是否，危害评级都要重定。 本文复盘某职业技术学院报名系统的一次未授权文件上传测试。这个漏洞最终定格在中危——不是因为测得不深，恰恰相反，是因为把 getshell 的三条路径全部实测排除后，证据只支持这">
+<meta property="og:type" content="article">
+<meta property="og:title" content="未授权文件上传复盘：任意文件写入的危害定界与GetShell证伪">
+<meta property="og:url" content="https://wxm777.github.io/post/220d87d5/index.html">
+<meta property="og:site_name" content="smile cat的博客">
+<meta property="og:description" content="0x00 前言文件上传漏洞的报告里，最常见的话术是”存在未授权上传，可上传任意文件，建议尽快修复”。但”能传”和”能利用”之间隔着三个问题：文件落没落盘？路径可不可控？Web 可不可达？任何一个答案是否，危害评级都要重定。 本文复盘某职业技术学院报名系统的一次未授权文件上传测试。这个漏洞最终定格在中危——不是因为测得不深，恰恰相反，是因为把 getshell 的三条路径全部实测排除后，证据只支持这">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-27T02:00:00.000Z">
+<meta property="article:author" content="smile cat">
+<meta property="article:tag" content="文件上传">
+<meta property="article:tag" content="未授权访问">
+<meta property="article:tag" content="漏洞复盘">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://wxm777.github.io/post/220d87d5/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://wxm777.github.io/post/220d87d5/","path":"post/220d87d5/","title":"未授权文件上传复盘：任意文件写入的危害定界与GetShell证伪"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>未授权文件上传复盘：任意文件写入的危害定界与GetShell证伪 | smile cat的博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="smile cat的博客" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">smile cat的博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x00-%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">0x00 前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01-%E6%94%BB%E5%87%BB%E9%9D%A2%E6%A2%B3%E7%90%86%EF%BC%9A%E5%85%88%E6%8E%92%E9%99%A4%E4%B8%A4%E4%B8%AA%E5%81%87%E7%9B%AE%E6%A0%87"><span class="nav-number">2.</span> <span class="nav-text">0x01 攻击面梳理：先排除两个假目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-%E5%88%86%E5%8F%91%E5%99%A8%E9%89%B4%E6%9D%83%E7%A1%AE%E8%AE%A4%EF%BC%9A%E4%B8%A4%E4%B8%AA%E6%97%A0%E5%89%AF%E4%BD%9C%E7%94%A8%E7%9A%84%E6%8E%A2%E9%92%88"><span class="nav-number">3.</span> <span class="nav-text">0x02 分发器鉴权确认：两个无副作用的探针</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-GetShell-%E4%B8%89%E6%9D%A1%E4%BB%B6%E9%80%90%E4%B8%80%E9%AA%8C%E8%AF%81"><span class="nav-number">4.</span> <span class="nav-text">0x03 GetShell 三条件逐一验证</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-%E7%A9%BF%E8%B6%8A%E7%BB%95%E8%BF%87%E4%B8%93%E9%A1%B9%E5%A4%8D%E6%B5%8B%EF%BC%9A%E5%85%AD%E7%BB%84%E5%85%A8%E7%81%AD"><span class="nav-number">5.</span> <span class="nav-text">0x04 穿越绕过专项复测：六组全灭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-%E6%80%BB%E7%BB%93%E4%B8%8E%E9%98%B2%E5%BE%A1%E5%BB%BA%E8%AE%AE"><span class="nav-number">6.</span> <span class="nav-text">0x05 总结与防御建议</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="smile cat"
+      src="/images/wxm.jpg">
+  <p class="site-author-name" itemprop="name">smile cat</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wxm777" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wxm777" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wxm777.github.io/post/220d87d5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/wxm.jpg">
+      <meta itemprop="name" content="smile cat">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="未授权文件上传复盘：任意文件写入的危害定界与GetShell证伪 | smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          未授权文件上传复盘：任意文件写入的危害定界与GetShell证伪
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-08-27 10:00:00" itemprop="dateCreated datePublished" datetime="2026-08-27T10:00:00+08:00">2026-08-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%AE%9E%E6%88%98%E5%A4%8D%E7%9B%98/" itemprop="url" rel="index"><span itemprop="name">实战复盘</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="0x00-前言"><a href="#0x00-前言" class="headerlink" title="0x00 前言"></a>0x00 前言</h2><p>文件上传漏洞的报告里，最常见的话术是”存在未授权上传，可上传任意文件，建议尽快修复”。但”能传”和”能利用”之间隔着三个问题：文件落没落盘？路径可不可控？Web 可不可达？任何一个答案是否，危害评级都要重定。</p>
+<p>本文复盘某职业技术学院报名系统的一次未授权文件上传测试。这个漏洞最终定格在中危——不是因为测得不深，恰恰相反，是因为把 getshell 的三条路径全部实测排除后，证据只支持这个结论。本文重点记录这条”证伪链”：如何从大量误导性攻击面里找到真实的上传点，以及确认上传成功后，如何系统性地验证”它能坏到什么程度”。</p>
+<span id="more"></span>
+
+<h2 id="0x01-攻击面梳理：先排除两个假目标"><a href="#0x01-攻击面梳理：先排除两个假目标" class="headerlink" title="0x01 攻击面梳理：先排除两个假目标"></a>0x01 攻击面梳理：先排除两个假目标</h2><p>目标与上一篇 SQL 注入是同一系统。信息收集阶段，文件相关的攻击面看似很丰富，但逐个核实后，大部分是噪音：</p>
+<p><strong>假目标一：<code>/File/*</code> 系列接口。</strong> 前端 JS 里存在 uploadify 上传组件的完整调用（<code>/File/UploadFile</code>、<code>/File/Download</code>、<code>/File/LoadFileInfo</code> 等），还有一个开发者遗留的 <code>test.jsp</code> 演示页。但实测全部返回软 404——这是一个从其他项目拷贝来的遗留页面，页面里的 <code>${ctx}</code> 占位符甚至没渲染，背后的 OPF 组件根本没部署。攻击面不存在，连带基于 <code>/File/Download</code> 的 IDOR 猜想一并关闭。</p>
+<p><strong>假目标二：<code>/download.jsp</code> 任意文件读取。</strong> 无参访问直接抛完整堆栈，泄露 <code>File thefile = new File(attach.getFiledir())</code> 这样的代码片段，疑似路径可控。但换了四个参数名（filedir &#x2F; attach.filedir &#x2F; filePath &#x2F; id）全部在同一个位置空指针——附件对象由数据库按 ID 装配，路径不可直接控制。同样关闭。</p>
+<p><strong>真实目标：ServiceAction 分发器。</strong> 登录页和 main.js 里存在一种值得警惕的 URL 形态：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/ServiceAction/&lt;完整类名&gt;?action=&lt;方法名&gt;</span><br></pre></td></tr></table></figure>
+
+<p>例如 <code>/ServiceAction/com.seaz.base.security.servlet.LoginAction?action=checkIsIP</code>。URL 里直接携带后端类名，由分发器反射调用——这种设计下，所有被注册的 Action 类的攻击面都挂在同一个入口上，只要分发器本身没做鉴权，后面的每一个方法都可能未授权。</p>
+<p>main.js 中找到了文件相关的三个类：<code>FileUploadAction</code>（uploadFile &#x2F; getMaxUploadSize &#x2F; getAttachObjnameById）、<code>FileDownload</code>、<code>AttachAction</code>（delete）。</p>
+<p><strong>经验总结</strong>：文件上传类目标的测绘，先分清”JS 里引用过”和”服务端真部署”。遗留测试页、拷贝来的组件引用会制造大量假攻击面，每个都要用一次请求确认死活，再决定投入方向。</p>
+<h2 id="0x02-分发器鉴权确认：两个无副作用的探针"><a href="#0x02-分发器鉴权确认：两个无副作用的探针" class="headerlink" title="0x02 分发器鉴权确认：两个无副作用的探针"></a>0x02 分发器鉴权确认：两个无副作用的探针</h2><p>先验证分发器本身有没有鉴权。这里选探针有个讲究：要找<strong>无副作用</strong>的方法调用——既不读敏感数据也不写任何东西，纯粹观察”请求是否到达了业务层”。</p>
+<p>两个探针：</p>
+<ol>
+<li>调用真实存在的方法 <code>FileUploadAction?action=getMaxUploadSize</code>（查询上传大小限制，纯读取配置），未登录状态下返回 <code>-1.0</code>——<strong>业务逻辑真实执行了</strong>，分发器没有登录校验；</li>
+<li>调用一个不存在的类名，返回 200 空响应——分发器对任何类名都尝试分发，没有白名单。</li>
+</ol>
+<p>分发器未授权实锤。接下来才是写入动作的测试：上传一个 56 字节的无害文本文件 probe.txt（内容只有一行说明文字）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -k -F <span class="string">&quot;Filedata=@probe.txt;type=text/plain&quot;</span> \</span><br><span class="line">  <span class="string">&quot;https://qyhgl.***.edu.cn/ServiceAction/com.seaz.base.file.FileUploadAction?action=uploadFile&amp;fieldtype=1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>响应 200，返回一个附件 ID：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">529d30f49d1a25b001a066837e9234b2</span><br></pre></td></tr></table></figure>
+
+<p><strong>全程未携带任何会话凭据，上传直接成功。</strong></p>
+<p>用返回的附件 ID 把读取链路也验证了一遍（均为未登录状态）：</p>
+<ul>
+<li><code>getAttachObjnameById?attachid=&lt;GUID&gt;</code> → 返回 <code>probe.txt</code>（附件元数据未授权可读）；</li>
+<li><code>FileDownload?attachid=&lt;GUID&gt;&amp;download=1</code> → 文件内容原样返回；</li>
+<li><code>download.jsp?attachid=&lt;GUID&gt;</code> → 同样直接返回内容。</li>
+</ul>
+<p>另外注意这个附件 ID 是 32 位 hex GUID——这顺带解释了之前附件 IDOR 枚举失败的原因：ID 空间太大，黑盒无法枚举他人附件。未授权上传 + 未授权读己知 ID 的附件，漏洞到这里已经可以定”中危”。剩下的问题是能不能升级。</p>
+<h2 id="0x03-GetShell-三条件逐一验证"><a href="#0x03-GetShell-三条件逐一验证" class="headerlink" title="0x03 GetShell 三条件逐一验证"></a>0x03 GetShell 三条件逐一验证</h2><p>能否 getshell，拆开是三个独立条件，逐个实测：</p>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>验证方法</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 文件落盘</td>
+<td><code>download.jsp?attachid=&lt;GUID&gt;</code> 能读回内容，且堆栈显示 <code>new File(filedir)</code></td>
+<td><strong>成立</strong>，文件真实写在磁盘上</td>
+</tr>
+<tr>
+<td>② Web 可达</td>
+<td>直接访问 <code>/upload/probe.png</code>、<code>/upload/&lt;GUID&gt;.png</code>、<code>/attach/&lt;GUID&gt;.png</code> 等常见静态路径</td>
+<td><strong>不成立</strong>，全部软 404，存储目录在 Web 根之外</td>
+</tr>
+<tr>
+<td>③ 路径可控</td>
+<td>上传文件名构造为 <code>../probe_trav.txt</code>、<code>../../../../probe_trav2.txt</code>，尝试穿越到 Web 根</td>
+<td><strong>不成立</strong>，<code>getAttachObjnameById</code> 返回的文件名是剥离后的 <code>probe_trav.txt</code>，服务端做了规范化</td>
+</tr>
+</tbody></table>
+<p>条件①成立但②③都不成立。还有一个细节：磁盘文件以 GUID 命名，原始文件名只存数据库字段——即使穿越成功，落地文件名也不可控。</p>
+<p>初步结论：<strong>getshell 不成立</strong>。但路径穿越只测了最基础的两种写法，下结论前需要把常见的绕过手法补齐。</p>
+<h2 id="0x04-穿越绕过专项复测：六组全灭"><a href="#0x04-穿越绕过专项复测：六组全灭" class="headerlink" title="0x04 穿越绕过专项复测：六组全灭"></a>0x04 穿越绕过专项复测：六组全灭</h2><p>隔了一天，对照路径穿越的技术清单做了第二轮专项测试，共六组：</p>
+<table>
+<thead>
+<tr>
+<th>组别</th>
+<th>Payload</th>
+<th>元数据接口返回</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 反斜杠</td>
+<td><code>..\probe_bsl.txt</code></td>
+<td><code>probe_bsl.txt</code></td>
+<td>反斜杠同样被剥</td>
+</tr>
+<tr>
+<td>2a 嵌套</td>
+<td><code>....//probe_nest.txt</code></td>
+<td><code>probe_nest.txt</code></td>
+<td>失败</td>
+</tr>
+<tr>
+<td>2b 混合</td>
+<td><code>....\/probe_nest2.txt</code></td>
+<td><code>/probe_nest2.txt</code>（残留前导&#x2F;）</td>
+<td>暴露了过滤逻辑，但不构成穿越</td>
+</tr>
+<tr>
+<td>3a-c 编码系</td>
+<td><code>..%5c</code>、<code>%252e%252e%252f</code>、<code>..%2f</code></td>
+<td>原样存活</td>
+<td>服务端不做 URL 解码，编码串进不了落盘路径</td>
+</tr>
+<tr>
+<td>4 RFC5987</td>
+<td><code>filename*=UTF8&#39;&#39;..%5c…</code></td>
+<td><code>probe.txt</code></td>
+<td>老解析器不认 filename*，回退到普通字段</td>
+</tr>
+<tr>
+<td>5 双 filename</td>
+<td>同名字段传两个</td>
+<td>取第二个，但仍被规范化</td>
+<td>失败</td>
+</tr>
+<tr>
+<td>6 绝对路径</td>
+<td><code>C:\probe_abs.txt</code></td>
+<td><code>probe_abs.txt</code></td>
+<td>被 basename 化</td>
+</tr>
+</tbody></table>
+<p>六组全灭。所有构造的”穿越后落点”也逐个用 GET 验证过，Web 根下均无落地文件。</p>
+<p>到这里可以画出服务端文件名处理的完整画像：<strong>删除所有 <code>..</code> 子串 + 删除反斜杠 + 按 <code>/</code> 取 basename，且不做 URL 解码</strong>。编码系的 payload 能活着存进数据库的元数据字段，但磁盘文件 GUID 命名、原始文件名不参与落盘路径，所以对穿越写盘的防护是完备的。</p>
+<p>另外还有一条支线：上传不限制文件格式（HTML 也能传），但下载接口统一带 <code>Content-Disposition: attachment</code> 强制下载，不渲染，XSS 路径同样堵死。</p>
+<p><strong>最终定级</strong>：未授权上传 &#x3D; 中危。可任意上传文件占用存储、污染附件库；附件元数据与下载接口未授权，但 GUID 不可枚举他人附件；getshell 与 XSS 路径均实测排除。</p>
+<p><strong>经验总结</strong>：危害定级是证据问题不是措辞问题。把”可 getshell”写进报告只需要一行字，但把它证伪掉需要两轮九个 payload 加一串落点验证——后者对厂商的价值反而更大：审核人员看到”穿越六组全灭、Web 根逐点验证无落地”的结论，就不需要再花时间去怀疑评级是否被压低。</p>
+<h2 id="0x05-总结与防御建议"><a href="#0x05-总结与防御建议" class="headerlink" title="0x05 总结与防御建议"></a>0x05 总结与防御建议</h2><p>本次测试的漏洞本体很简单：ServiceAction 分发器无鉴权，导致上传、元数据读取、下载三个接口全部未授权。值得记录的是测试过程本身：两个假攻击面的排除、无副作用探针的选择、getshell 三条件的逐一验证、穿越绕过的专项复测。挖洞不止要会”证实”，也要会”证伪”——把不成立的路径系统地排除掉，结论才站得住。</p>
+<p><strong>几点测试方法论上的收获：</strong></p>
+<ol>
+<li><strong>URL 中出现类名&#x2F;方法名的分发器，优先级提到最高</strong>。这种设计把路由层和代码层直接打通，鉴权一旦缺失就是成片暴露。本次同站还存在一个 GET 型附件删除接口（<code>AttachAction?action=delete&amp;ids=N</code>），疑似同样未授权，因删除属禁止操作未验证，已在报告中提示厂商自查。</li>
+<li><strong>写入类测试全程用无害探针并留痕</strong>。本次上传的所有文件均为自造的无害文本&#x2F;1×1 像素图片，每个文件的附件 ID、文件名、用途都记录在案，报告中如实说明留存情况。</li>
+<li><strong>定级下调不丢人</strong>。这个漏洞从初判”高危（任意文件上传）”下调到中危，依据是三轮实测。夸大危害的报告会被审核打回，边界清晰的报告才会被快速确认。</li>
+</ol>
+<p><strong>给防守方的修复建议：</strong></p>
+<ol>
+<li>ServiceAction 分发器增加统一鉴权，上传&#x2F;下载&#x2F;删除类 Action 必须登录且校验业务归属；同时对可分发的类建立白名单；</li>
+<li>保持现有的存储隔离与文件名规范化（实测对穿越防护有效），建议再补服务端文件类型白名单；</li>
+<li>附件元数据与下载接口校验当前用户对该附件的访问权限；</li>
+<li>清理 <code>test.jsp</code> 等遗留测试页，关闭生产环境的详细错误回显。</li>
+</ol>
+<hr>
+<p><em>测试仅上传无害探针文件（txt×3、1×1 像素 png×1 及穿越测试文本若干），未上传任何可执行文件，未读取&#x2F;删除任何他人附件。文中目标信息已做匿名化处理。</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/" rel="tag"># 文件上传</a>
+              <a href="/tags/%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE/" rel="tag"># 未授权访问</a>
+              <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%9B%98/" rel="tag"># 漏洞复盘</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/837d9b56/" rel="prev" title="SQL注入复盘：双URL编码绕过全局过滤器拖取1.4万条新生信息">
+                  <i class="fa fa-angle-left"></i> SQL注入复盘：双URL编码绕过全局过滤器拖取1.4万条新生信息
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/661ffc73/" rel="next" title="未授权访问复盘：API网关多实例鉴权不一致致5万条学生信息泄露">
+                  未授权访问复盘：API网关多实例鉴权不一致致5万条学生信息泄露 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">smile cat</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">36k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">33 分钟</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

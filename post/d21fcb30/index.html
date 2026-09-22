@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxm777.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"tokyo-night-dark","dark":"tokyo-night-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"show_result":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="0x00 前言之前写过 AI-SRC 工作流的整体架构，这篇记录信息收集层（S1）的一次重构。 重构的原因是实战中反复出现的三类问题：拿到目标先跑一轮字典爆破，几千条结果里能用上的很少；工具跑完存个文件就算结束，结果没人逐条看；以及看到登录框就直接开始测注入，验证码机制还没摸清。这三类问题的共同点是：旧版 S1 的流程是围绕”有哪些工具可以跑”组织的，而不是围绕”需要收集什么信号”组织的。 这次重">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI渗透工作流的信息收集层重构：从工具驱动到信号驱动">
+<meta property="og:url" content="https://wxm777.github.io/post/d21fcb30/index.html">
+<meta property="og:site_name" content="smile cat的博客">
+<meta property="og:description" content="0x00 前言之前写过 AI-SRC 工作流的整体架构，这篇记录信息收集层（S1）的一次重构。 重构的原因是实战中反复出现的三类问题：拿到目标先跑一轮字典爆破，几千条结果里能用上的很少；工具跑完存个文件就算结束，结果没人逐条看；以及看到登录框就直接开始测注入，验证码机制还没摸清。这三类问题的共同点是：旧版 S1 的流程是围绕”有哪些工具可以跑”组织的，而不是围绕”需要收集什么信号”组织的。 这次重">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-18T02:00:00.000Z">
+<meta property="article:author" content="smile cat">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="信息收集">
+<meta property="article:tag" content="工作流">
+<meta property="article:tag" content="渗透测试">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://wxm777.github.io/post/d21fcb30/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://wxm777.github.io/post/d21fcb30/","path":"post/d21fcb30/","title":"AI渗透工作流的信息收集层重构：从工具驱动到信号驱动"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>AI渗透工作流的信息收集层重构：从工具驱动到信号驱动 | smile cat的博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="smile cat的博客" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">smile cat的博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x00-%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">0x00 前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01-%E6%80%BB%E5%8E%9F%E5%88%99%EF%BC%9A%E7%9C%9F%E5%AE%9E%E6%9D%A5%E6%BA%90%E4%BC%98%E5%85%88%EF%BC%8C%E5%AD%97%E5%85%B8%E7%88%86%E7%A0%B4%E9%99%8D%E7%BA%A7%E4%B8%BA%E8%A1%A5%E7%9B%B2"><span class="nav-number">2.</span> <span class="nav-text">0x01 总原则：真实来源优先，字典爆破降级为补盲</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-%E5%85%AB%E6%AD%A5%E6%B5%81%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">0x02 八步流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-%E5%BC%BA%E5%BC%B1%E4%BF%A1%E5%8F%B7%EF%BC%9A%E8%BF%9B-S2-%E7%9A%84%E5%88%A4%E5%AE%9A%E6%A0%87%E5%87%86"><span class="nav-number">4.</span> <span class="nav-text">0x03 强弱信号：进 S2 的判定标准</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-%E5%B7%A5%E5%85%B7%E4%BA%A7%E5%87%BA%E5%88%A4%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">0x04 工具产出判读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-%E9%85%8D%E5%A5%97%E6%B2%89%E6%B7%80%EF%BC%9AWAF-%E6%AD%A2%E6%8D%9F%E5%86%B3%E7%AD%96%E8%A1%A8"><span class="nav-number">6.</span> <span class="nav-text">0x05 配套沉淀：WAF 止损决策表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x06-%E6%8C%87%E7%BA%B9%E7%A1%AE%E8%AE%A4%E6%96%B9%E5%BC%8F%E5%8D%87%E7%BA%A7"><span class="nav-number">7.</span> <span class="nav-text">0x06 指纹确认方式升级</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x07-%E6%80%BB%E7%BB%93"><span class="nav-number">8.</span> <span class="nav-text">0x07 总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="smile cat"
+      src="/images/wxm.jpg">
+  <p class="site-author-name" itemprop="name">smile cat</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wxm777" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wxm777" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wxm777.github.io/post/d21fcb30/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/wxm.jpg">
+      <meta itemprop="name" content="smile cat">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="AI渗透工作流的信息收集层重构：从工具驱动到信号驱动 | smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AI渗透工作流的信息收集层重构：从工具驱动到信号驱动
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-09-18 10:00:00" itemprop="dateCreated datePublished" datetime="2026-09-18T10:00:00+08:00">2026-09-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%96%B9%E6%B3%95%E8%AE%BA/" itemprop="url" rel="index"><span itemprop="name">方法论</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>2 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="0x00-前言"><a href="#0x00-前言" class="headerlink" title="0x00 前言"></a>0x00 前言</h2><p>之前写过 AI-SRC 工作流的整体架构，这篇记录信息收集层（S1）的一次重构。</p>
+<p>重构的原因是实战中反复出现的三类问题：拿到目标先跑一轮字典爆破，几千条结果里能用上的很少；工具跑完存个文件就算结束，结果没人逐条看；以及看到登录框就直接开始测注入，验证码机制还没摸清。这三类问题的共同点是：旧版 S1 的流程是围绕”有哪些工具可以跑”组织的，而不是围绕”需要收集什么信号”组织的。</p>
+<p>这次重构把顺序倒了过来。下面记录改动内容。</p>
+<span id="more"></span>
+
+<h2 id="0x01-总原则：真实来源优先，字典爆破降级为补盲"><a href="#0x01-总原则：真实来源优先，字典爆破降级为补盲" class="headerlink" title="0x01 总原则：真实来源优先，字典爆破降级为补盲"></a>0x01 总原则：真实来源优先，字典爆破降级为补盲</h2><p>新的总原则：信号驱动流程——真实来源（浏览器 Network、JS 提取、Swagger 文档）优先于字典猜测，字典爆破只在有覆盖缺口时使用，不再是每个目标的常规动作。</p>
+<p>依据是实际观察：浏览器把功能点一遍，Network 面板里的 XHR 就是一份接口清单；SPA 的 JS chunk 里能提取出 API 注册表；有 Swagger 的站可以直接拿到接口和数据模型。这些来源的覆盖率通常比字典高，而且不产生大量请求。</p>
+<p>字典爆破除了收益低，还有封禁风险：教育 SRC 场景下大字典扫描是触发 WAF 的常见原因（9 月 7 日实测，瑞数类动态 WAF 下大字典扫描导致 IP 被封）。降级为补盲手段后，请求量和特征都明显下降。</p>
+<p>时间预算也做了固定：S1 约 30 分钟，SPA 站需要深逆 JS 的可到 40-60 分钟；止损条件是连续数分钟无新增高价值接口即提前结束。</p>
+<h2 id="0x02-八步流程"><a href="#0x02-八步流程" class="headerlink" title="0x02 八步流程"></a>0x02 八步流程</h2><p>重构后的 S1 固化为八步：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">① 人工走站: 浏览器经 Burp 点遍功能 + httpx 摸底 + 指纹三件套</span><br><span class="line">② JS/接口提取: URLFinder 全量提取；SPA 站深逆 chunk 提 API 注册表</span><br><span class="line">③ 探针组（所有站点照跑，约 30-200 发）:</span><br><span class="line">   - 文档类: swagger-ui / api-docs / doc.html / actuator / druid / graphql</span><br><span class="line">   - 高价值路径: /.git/HEAD / robots.txt / sitemap.xml / backup / upload</span><br><span class="line">   - WAF 预探: 正常包 vs 特征包对照 2~3 发</span><br><span class="line">④ 信号分流: Swagger 命中→解析文档; WAF 特征→识别厂商→查止损表</span><br><span class="line">⑤ dirsearch 定向爆破: 仅当有覆盖缺口，合并字典一次跑，扩展名按指纹裁剪</span><br><span class="line">⑥ 结构化接口清单表（强制落盘）: URL | Method | 参数 | 鉴权状态 | 来源 | 状态码</span><br><span class="line">⑦ 进 S2 判定: 强信号≥1，或弱信号≥3 且覆盖充分</span><br><span class="line">⑧ 收尾: 每个工具一行产出判读</span><br></pre></td></tr></table></figure>
+
+<p>三个设计细节：</p>
+<p><strong>探针组（第③步）替代了旧版的大字典扫描</strong>。30 到 200 发固定的高价值路径（文档端点、<code>.git</code>、备份文件），所有站点照跑，SPA 站不豁免。探针组里包含 WAF 预探：正常包和带特征包各发两三发做对照，尽早确认防护是否存在，为后续动作的请求强度定基调。</p>
+<p><strong>第⑤步的字典使用规则</strong>：目录、API、敏感路径合并去重后一次跑完；扩展名按指纹裁剪，Java 站不挂 php 后缀；动态 WAF 站点降级为小字典限速，或直接跳过并报告用户。</p>
+<p><strong>第⑥步的结构化接口清单表是强制产物</strong>，每行标注接口来源（Network 观察 &#x2F; JS 提取 &#x2F; 文档 &#x2F; 爆破）。这张表是 S2 的直接输入，S1 和 S2 之间通过固定格式交接，不再用松散笔记。</p>
+<h2 id="0x03-强弱信号：进-S2-的判定标准"><a href="#0x03-强弱信号：进-S2-的判定标准" class="headerlink" title="0x03 强弱信号：进 S2 的判定标准"></a>0x03 强弱信号：进 S2 的判定标准</h2><p>S1 何时结束、进入 S2，新标准给出了分级：</p>
+<ul>
+<li><strong>强信号</strong>（≥1 个即可进入 S2）：Swagger&#x2F;actuator 可解析、报错堆栈带组件版本、接口无鉴权返回真实数据、.git 可拉取、JS 硬编码密钥；</li>
+<li><strong>弱信号</strong>（≥3 个且覆盖充分）：普通路径 200、无版本指纹、目录列表、无敏感内容的配置；</li>
+<li>两者都不足：先查 wayback 历史快照捞旧接口（学校站改版后旧接口残留比较常见），仍无则进入盲打模式。</li>
+</ul>
+<p>同时保留了一条说明：”最终结合信号价值、置信度、覆盖度综合判断，不做纯计数门槛”——判据是参考基线，不是机械执行的阈值。</p>
+<h2 id="0x04-工具产出判读"><a href="#0x04-工具产出判读" class="headerlink" title="0x04 工具产出判读"></a>0x04 工具产出判读</h2><p>旧版的一个问题：工具跑完结果存进 evidence&#x2F;，没有逐条判读，部分命中信息没有被利用。这次加了两条强制要求：</p>
+<ol>
+<li><strong>结果强制过目</strong>：URLFinder 和 dirsearch 的输出必须按关键词过滤后逐条过一遍，命中记为信号。关键词为：<code>api</code>、<code>admin</code>、<code>swagger</code>、<code>actuator</code>、<code>.git</code>、<code>backup</code>、<code>test</code>、<code>upload</code>；</li>
+<li><strong>工具产出判读</strong>：每个工具跑完在 recon.md 写一行结论（产出 X 条 &#x2F; 零命中 &#x2F; 识别出结构特征），不允许只存证据文件不写结论。</li>
+</ol>
+<p>复盘（&#x2F;rem）时会把各目标的工具产出率汇总，作为后续工具链取舍的依据：某个工具在真实目标上持续零产出，就从流程里降级或移除。工具链的构成由此可以基于累计数据调整，而不是凭印象。</p>
+<h2 id="0x05-配套沉淀：WAF-止损决策表"><a href="#0x05-配套沉淀：WAF-止损决策表" class="headerlink" title="0x05 配套沉淀：WAF 止损决策表"></a>0x05 配套沉淀：WAF 止损决策表</h2><p>知识库同步新增了一张服务 S1 的卡片：<code>waf-decision.md</code>，WAF 厂商止损决策表。定位是止损开关，不是绕过手册。</p>
+<p>探针组预探发现拦截特征后，用 wafw00f 识别厂商，然后按表执行预算限制，例如：雷池语义引擎对混淆类手法不敏感，已验证的公开绕过手法对新部署无效，规则是禁止投入绕过研究；瑞数类动态 WAF 禁止大字典扫描，探测降速到 5~10 秒一发；深信服设备注入路线只给低预算。每行规则附实战来源和日期。</p>
+<p>这张表嵌在 S1 第④步（信号分流）里：厂商识别结果直接转化为后续动作的预算约束——字典规模、探测速率、注入探针数量都按表执行。</p>
+<p>quick-ref 索引同时加了使用限定：卡片只在流程走到对应阶段时加载，禁止拿到目标后逐项测试。</p>
+<h2 id="0x06-指纹确认方式升级"><a href="#0x06-指纹确认方式升级" class="headerlink" title="0x06 指纹确认方式升级"></a>0x06 指纹确认方式升级</h2><p>S1 的指纹识别规则也做了调整：旧规则要求 Shiro、Struts2 这类高价值组件必须两个指纹工具交叉确认才采信；现在改为做无害功能验证——Shiro 发 rememberMe 观察是否有 deleteMe 响应头，Fastjson 用 URLDNS 无害探测，版本号用报错堆栈或异常页佐证。</p>
+<p>理由是工具指纹本质上是规则匹配，可能误报；功能回显是目标自身的响应，可信度更高。</p>
+<h2 id="0x07-总结"><a href="#0x07-总结" class="headerlink" title="0x07 总结"></a>0x07 总结</h2><p>这次重构的改动可以归纳为四点：</p>
+<ol>
+<li><strong>信息来源分级</strong>：Network &#x2F; JS &#x2F; 文档作为主要来源，字典爆破降级为补盲手段；</li>
+<li><strong>执行顺序固定</strong>：人工走站第一，卡片按阶段加载；</li>
+<li><strong>产出必须判读</strong>：每个工具写一行结论，工具链取舍按累计产出率调整；</li>
+<li><strong>预算显性化</strong>：时间预算、止损条件、WAF 厂商预算表都写成明确规则。</li>
+</ol>
+<p>这些规则基本都能对应到 9 月实战中的具体问题：有目标字典跑了半小时零产出，有站点验证码机制没摸清就进入了测试阶段。规则的主要来源是踩坑记录，这次的改动就是把这批坑固化成约束。</p>
+<hr>
+<p><em>本工作流仅用于授权目标，所有测试遵守 SRC 平台规则与最小必要原则。</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/AI/" rel="tag"># AI</a>
+              <a href="/tags/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/" rel="tag"># 渗透测试</a>
+              <a href="/tags/%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/" rel="tag"># 信息收集</a>
+              <a href="/tags/%E5%B7%A5%E4%BD%9C%E6%B5%81/" rel="tag"># 工作流</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/d448f22a/" rel="prev" title="AI辅助渗透工作流的设计：AI-SRC工作目录详解">
+                  <i class="fa fa-angle-left"></i> AI辅助渗透工作流的设计：AI-SRC工作目录详解
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">smile cat</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">36k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">33 分钟</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

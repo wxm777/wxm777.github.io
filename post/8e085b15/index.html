@@ -16,14 +16,13 @@
 
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"wxm777.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"github","dark":"atom-one-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"show_result":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxm777.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"tokyo-night-dark","dark":"tokyo-night-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"show_result":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
 
     <meta name="description" content="0x00 前言在常规的自动化渗透测试中，安全工具高度依赖目标系统的默认特征库。然而在真实的攻防场景下，防御方常通过改变默认配置（如重命名高危目录）来实施特征隐藏（Security through Obscurity），从而规避扫描。 本次实战记录了一次针对 Windows 11 平台上 WordPress 靶机的黑盒测试过程。本文详细复盘了在常规扫描器漏报的情况下，如何通过调整 Fuzzing 策">
 <meta property="og:type" content="article">
 <meta property="og:title" content="黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程">
-<meta property="og:url" content="https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/index.html">
+<meta property="og:url" content="https://wxm777.github.io/post/8e085b15/index.html">
 <meta property="og:site_name" content="smile cat的博客">
 <meta property="og:description" content="0x00 前言在常规的自动化渗透测试中，安全工具高度依赖目标系统的默认特征库。然而在真实的攻防场景下，防御方常通过改变默认配置（如重命名高危目录）来实施特征隐藏（Security through Obscurity），从而规避扫描。 本次实战记录了一次针对 Windows 11 平台上 WordPress 靶机的黑盒测试过程。本文详细复盘了在常规扫描器漏报的情况下，如何通过调整 Fuzzing 策">
 <meta property="og:locale" content="zh_CN">
@@ -39,7 +38,6 @@
 <meta property="og:image" content="https://wxm777.github.io/images/blog1/9.png">
 <meta property="og:image" content="https://wxm777.github.io/images/blog1/10.png">
 <meta property="article:published_time" content="2026-05-10T02:00:00.000Z">
-<meta property="article:modified_time" content="2026-05-30T04:03:19.647Z">
 <meta property="article:author" content="smile cat">
 <meta property="article:tag" content="RCE漏洞">
 <meta property="article:tag" content="渗透测试">
@@ -49,10 +47,10 @@
 <meta name="twitter:image" content="https://wxm777.github.io/images/blog1/1.png">
 
 
-<link rel="canonical" href="https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
+<link rel="canonical" href="https://wxm777.github.io/post/8e085b15/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/","path":"2026/05/10/黑盒测试复盘：突破隐蔽目录的-WP-File-Manager-漏洞利用全过程/","title":"黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://wxm777.github.io/post/8e085b15/","path":"post/8e085b15/","title":"黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>黑盒测试复盘：突破隐蔽目录的 WP File Manager 漏洞利用全过程 | smile cat的博客</title>
@@ -67,7 +65,7 @@
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
 <script src="/js/third-party/search/local-search.js" defer></script>
@@ -87,9 +85,10 @@
   <noscript>
     <link rel="stylesheet" href="/css/noscript.css">
   </noscript>
+<link rel="alternate" href="/atom.xml" title="smile cat的博客" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+<body itemscope itemtype="http://schema.org/WebPage">
   <div class="headband"></div>
 
   <main class="main">
@@ -122,7 +121,7 @@
 
 
 <nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
       <li class="menu-item menu-item-search">
         <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
         </a>
@@ -188,18 +187,18 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">4</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-count">23</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -231,7 +230,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wxm777.github.io/2026/05/10/%E9%BB%91%E7%9B%92%E6%B5%8B%E8%AF%95%E5%A4%8D%E7%9B%98%EF%BC%9A%E7%AA%81%E7%A0%B4%E9%9A%90%E8%94%BD%E7%9B%AE%E5%BD%95%E7%9A%84-WP-File-Manager-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%85%A8%E8%BF%87%E7%A8%8B/">
+    <link itemprop="mainEntityOfPage" href="https://wxm777.github.io/post/8e085b15/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/wxm.jpg">
@@ -264,13 +263,6 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-30 12:03:19" itemprop="dateModified" datetime="2026-05-30T12:03:19+08:00">2026-05-30</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -280,6 +272,21 @@
     </span>
 
   
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
 </div>
 
         </div>
@@ -417,7 +424,7 @@
             <div class="post-nav-item">
             </div>
             <div class="post-nav-item">
-                <a href="/2026/05/22/HawkEye-Scanner%EF%BC%9A%E7%BA%AF%E7%A6%BB%E7%BA%BF%20JWT%20%E5%BC%B1%E5%AF%86%E9%92%A5%E9%AB%98%E5%B9%B6%E5%8F%91%E6%8E%A2%E6%B5%8B%E5%99%A8/" rel="next" title="HawkEye-Scanner：纯离线 JWT 弱密钥高并发探测器">
+                <a href="/post/ba4bf4a2/" rel="next" title="HawkEye-Scanner：纯离线 JWT 弱密钥高并发探测器">
                   HawkEye-Scanner：纯离线 JWT 弱密钥高并发探测器 <i class="fa fa-angle-right"></i>
                 </a>
             </div>
@@ -445,6 +452,20 @@
     </span>
     <span class="author" itemprop="copyrightHolder">smile cat</span>
   </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">36k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">33 分钟</span>
+  </span>
+</div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
 

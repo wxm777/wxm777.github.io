@@ -20,10 +20,10 @@
   --btn-default-hover-bg: #222;
   --btn-default-hover-color: #fff;
   --btn-default-hover-border-color: #222;
-  --highlight-background: #fff;
-  --highlight-foreground: #24292e;
-  --highlight-gutter-background: #e9e9ea;
-  --highlight-gutter-foreground: #393e42;
+  --highlight-background: #1a1b26;
+  --highlight-foreground: #9aa5ce;
+  --highlight-gutter-background: #262836;
+  --highlight-gutter-foreground: #8d97bd;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -49,10 +49,10 @@
     --btn-default-hover-bg: #666;
     --btn-default-hover-color: #ccc;
     --btn-default-hover-border-color: #666;
-    --highlight-background: #282c34;
-    --highlight-foreground: #abb2bf;
-    --highlight-gutter-background: #353941;
-    --highlight-gutter-foreground: #9da4b1;
+    --highlight-background: #1a1b26;
+    --highlight-foreground: #9aa5ce;
+    --highlight-gutter-background: #262836;
+    --highlight-gutter-foreground: #8d97bd;
     color-scheme: dark;
   }
   img {
@@ -413,206 +413,110 @@ code.hljs {
   padding: 3px 5px
 }
 /*!
-  Theme: GitHub
-  Description: Light theme as seen on github.com
-  Author: github.com
-  Maintainer: @Hirse
-  Updated: 2021-05-15
-
-  Outdated base version: https://github.com/primer/github-syntax-light
-  Current colors taken from GitHub's CSS
+  Theme: Tokyo-night-Dark
+  origin: https://github.com/enkia/tokyo-night-vscode-theme
+  Description: Original highlight.js style
+  Author: (c) Henri Vandersleyen <hvandersleyen@gmail.com>
+  License: see project LICENSE
+  Touched: 2022
 */
-.hljs {
-  color: #24292e;
-  background: #ffffff
+/*  Comment */
+.hljs-meta,
+.hljs-comment {
+  color: #565f89
 }
+/* Red */
+/*INFO: This keyword, HTML elements, Regex group symbol, CSS units, Terminal Red */
+.hljs-tag,
 .hljs-doctag,
-.hljs-keyword,
-.hljs-meta .hljs-keyword,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
 .hljs-template-tag,
-.hljs-template-variable,
-.hljs-type,
-.hljs-variable.language_ {
-  /* prettylights-syntax-keyword */
-  color: #d73a49
+.hljs-selector-pseudo,
+.hljs-selector-attr,
+.hljs-variable.language_,
+.hljs-deletion {
+  color: #f7768e
 }
+/*Orange */
+/*INFO: Number and Boolean constants, Language support constants */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-number,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-link {
+  color: #ff9e64
+}
+/*  Yellow */
+/* INFO:  	Function parameters, Regex character sets, Terminal Yellow */
+.hljs-built_in,
+.hljs-attribute {
+  color: #e0af68
+}
+/* cyan */
+/* INFO: Language support functions, CSS HTML elements */
+.hljs-selector-tag {
+  color: #2ac3de
+}
+/* light blue */
+/* INFO: Object properties, Regex quantifiers and flags, Markdown headings, Terminal Cyan, Markdown code, Import/export keywords */
+.hljs-keyword,
+.hljs-title.function_,
 .hljs-title,
 .hljs-title.class_,
 .hljs-title.class_.inherited__,
-.hljs-title.function_ {
-  /* prettylights-syntax-entity */
-  color: #6f42c1
+.hljs-subst,
+.hljs-property {
+  color: #7dcfff
 }
-.hljs-attr,
-.hljs-attribute,
-.hljs-literal,
-.hljs-meta,
-.hljs-number,
-.hljs-operator,
-.hljs-variable,
-.hljs-selector-attr,
-.hljs-selector-class,
-.hljs-selector-id {
-  /* prettylights-syntax-constant */
-  color: #005cc5
+/*Green*/
+/* INFO: Object literal keys, Markdown links, Terminal Green */
+.hljs-selector-tag {
+  color: #73daca
 }
-.hljs-regexp,
-.hljs-string,
-.hljs-meta .hljs-string {
-  /* prettylights-syntax-string */
-  color: #032f62
-}
-.hljs-built_in,
-.hljs-symbol {
-  /* prettylights-syntax-variable */
-  color: #e36209
-}
-.hljs-comment,
-.hljs-code,
-.hljs-formula {
-  /* prettylights-syntax-comment */
-  color: #6a737d
-}
-.hljs-name,
+/*Green(er) */
+/* INFO: Strings, CSS class names */
 .hljs-quote,
-.hljs-selector-tag,
-.hljs-selector-pseudo {
-  /* prettylights-syntax-entity-tag */
-  color: #22863a
-}
-.hljs-subst {
-  /* prettylights-syntax-storage-modifier-import */
-  color: #24292e
-}
-.hljs-section {
-  /* prettylights-syntax-markup-heading */
-  color: #005cc5;
-  font-weight: bold
-}
-.hljs-bullet {
-  /* prettylights-syntax-markup-list */
-  color: #735c0f
-}
-.hljs-emphasis {
-  /* prettylights-syntax-markup-italic */
-  color: #24292e;
-  font-style: italic
-}
-.hljs-strong {
-  /* prettylights-syntax-markup-bold */
-  color: #24292e;
-  font-weight: bold
-}
-.hljs-addition {
-  /* prettylights-syntax-markup-inserted */
-  color: #22863a;
-  background-color: #f0fff4
-}
-.hljs-deletion {
-  /* prettylights-syntax-markup-deleted */
-  color: #b31d28;
-  background-color: #ffeef0
-}
-.hljs-char.escape_,
-.hljs-link,
-.hljs-params,
-.hljs-property,
-.hljs-punctuation,
-.hljs-tag {
-  /* purposely ignored */
-  
-}
-@media (prefers-color-scheme: dark) {
-pre code.hljs {
-  display: block;
-  overflow-x: auto;
-  padding: 1em
-}
-code.hljs {
-  padding: 3px 5px
-}
-/*
-
-Atom One Dark by Daniel Gamage
-Original One Dark Syntax theme from https://github.com/atom/one-dark-syntax
-
-base:    #282c34
-mono-1:  #abb2bf
-mono-2:  #818896
-mono-3:  #5c6370
-hue-1:   #56b6c2
-hue-2:   #61aeee
-hue-3:   #c678dd
-hue-4:   #98c379
-hue-5:   #e06c75
-hue-5-2: #be5046
-hue-6:   #d19a66
-hue-6-2: #e6c07b
-
-*/
-.hljs {
-  color: #abb2bf;
-  background: #282c34
-}
-.hljs-comment,
-.hljs-quote {
-  color: #5c6370;
-  font-style: italic
-}
-.hljs-doctag,
-.hljs-keyword,
-.hljs-formula {
-  color: #c678dd
-}
-.hljs-section,
-.hljs-name,
-.hljs-selector-tag,
-.hljs-deletion,
-.hljs-subst {
-  color: #e06c75
-}
-.hljs-literal {
-  color: #56b6c2
-}
 .hljs-string,
-.hljs-regexp,
-.hljs-addition,
-.hljs-attribute,
-.hljs-meta .hljs-string {
-  color: #98c379
-}
-.hljs-attr,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-type,
-.hljs-selector-class,
-.hljs-selector-attr,
-.hljs-selector-pseudo,
-.hljs-number {
-  color: #d19a66
-}
 .hljs-symbol,
 .hljs-bullet,
-.hljs-link,
-.hljs-meta,
-.hljs-selector-id,
-.hljs-title {
-  color: #61aeee
+.hljs-addition {
+  color: #9ece6a
 }
-.hljs-built_in,
-.hljs-title.class_,
-.hljs-class .hljs-title {
-  color: #e6c07b
+/* Blue */
+/* INFO:  	Function names, CSS property names, Terminal Blue */
+.hljs-code,
+.hljs-formula,
+.hljs-section {
+  color: #7aa2f7
+}
+/* Magenta */
+/*INFO: Control Keywords, Storage Types, Regex symbols and operators, HTML Attributes, Terminal Magenta */
+.hljs-name,
+.hljs-keyword,
+.hljs-operator,
+.hljs-keyword,
+.hljs-char.escape_,
+.hljs-attr {
+  color: #bb9af7
+}
+/* white*/
+/* INFO: Variables, Class names, Terminal White */
+.hljs-punctuation {
+  color: #c0caf5
+}
+.hljs {
+  background: #1a1b26;
+  color: #9aa5ce
 }
 .hljs-emphasis {
   font-style: italic
 }
 .hljs-strong {
   font-weight: bold
-}
-.hljs-link {
-  text-decoration: underline
-}
 }
 .highlight:hover .copy-btn,
 .code-container:hover .copy-btn {
@@ -1406,7 +1310,7 @@ pre code {
     vertical-align: middle;
   }
   .links-of-author a::before {
-    background: #366cff;
+    background: #637981;
     display: inline-block;
     margin-right: 3px;
     transform: translateY(-2px);
@@ -2898,7 +2802,6 @@ header.header {
     color: var(--text-color);
     margin-top: 12px;
     max-height: calc(100vh - 24px);
-    visibility: hidden;
   }
   .site-state-item {
     padding: 0 10px;
@@ -3041,76 +2944,199 @@ header.header {
     padding: 10px 12px;
   }
 }
-/* ================================================= */
-/* 增强版：击穿底层壁垒的毛玻璃引擎                     */
-/* ================================================= */
-/* 1. 强制全局背景渐变 (加深了一点冷色调对比度，让玻璃反差更明显) */
-body,
-.container {
-  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%) !important;
-  background-attachment: fixed !important;
+/* =================================================
+   东京夜 Tokyo Night 暗色主题（正文高可读性版）
+   - 通过 NexT CSS 变量整体换肤，不碰主题源码
+   - 纯 CSS 实现，无 JS 动画、无 backdrop-filter，保证滚动帧率
+   ================================================= */
+/* ---------- 1. 调色板（Tokyo Night，正文提亮） ---------- */
+:root {
+/* 背景与文字 */
+  --body-bg-color: #1a1b26; /* 主背景：深夜紫黑 */
+  --content-bg-color: #1f2335; /* 内容卡片 */
+  --card-bg-color: #1f2335; /* 侧栏卡片 */
+  --text-color: #d3daf5; /* 正文：高亮蓝白，长时间阅读清晰不刺眼 */
+  --link-color: #7aa2f7; /* 链接：东京夜蓝（比紫色更清晰） */
+  --link-hover-color: #89b4fa; /* 链接悬停：亮蓝 */
+  --theme-color: #bb9af7; /* 主题强调色：薰衣草紫 */
+/* 站点标题 */
+  --brand-color: #e0e6ff;
+  --brand-hover-color: #bb9af7;
+/* 按钮 */
+  --btn-default-bg: #292e42;
+  --btn-default-color: #c0caf5;
+  --btn-default-border-color: #3b4261;
+  --btn-default-hover-bg: #7aa2f7;
+  --btn-default-hover-color: #1a1b26;
+  --btn-default-hover-border-color: #7aa2f7;
+/* 菜单 */
+  --menu-item-bg-color: #292e42;
+/* 引用块 */
+  --blockquote-color: #9aa5ce;
+/* 表格 */
+  --table-row-odd-bg-color: #1f2335;
+  --table-row-hover-bg-color: #292e42;
+/* 选中文字 */
+  --selection-bg: rgba(122,162,247,0.35);
+  --selection-color: #e0e6ff;
 }
-/* 2. 暴力击穿中间层：将 NexT 所有的排版包裹器强行变成全透明 */
-.main-inner,
-.content-wrap,
-.content {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
+/* 让浏览器原生控件（滚动条/表单）也进入深色模式 */
+html {
+  color-scheme: dark;
 }
-/* 3. 重新在视觉表现层挂载毛玻璃 */
+/* ---------- 2. 背景：深夜紫黑底 + 极淡斜向渐变（纯 CSS，无重绘开销） ---------- */
+body {
+  background: linear-gradient(135deg, #1a1b26 0%, #16161e 55%, #1a1b26 100%);
+  background-attachment: fixed;
+}
+/* ---------- 3. 卡片：细边框 + 圆角 + 轻阴影 ---------- */
 .post-block,
 .sidebar-inner,
 .header-inner {
-  background: rgba(255,255,255,0.4) !important; /* 进一步降低白底的不透明度，增强透视 */
-  backdrop-filter: blur(15px) !important; /* 加大高斯模糊的像素半径 */
-  -webkit-backdrop-filter: blur(15px) !important;
-  border-radius: 16px !important;
-  border: 1px solid rgba(255,255,255,0.9) !important; /* 高光边缘 */
-  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.05) !important;
-  margin-bottom: 24px !important;
-  transition: all 0.3s ease-in-out !important;
+  border: 1px solid #292e42;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
-/* 4. 悬浮交互反馈 */
+.post-block {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
 .post-block:hover {
-  transform: translateY(-5px) !important;
-  box-shadow: 0 15px 45px 0 rgba(0,0,0,0.1) !important; /* 阴影下沉 */
-  background: rgba(255,255,255,0.6) !important; /* 悬停时稍微变白，聚焦视线 */
+  border-color: rgba(187,154,247,0.35);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.45);
 }
-/* 5. 确保侧边栏大背景也是透明的 */
-.sidebar {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-/* ================================================= */
-/* 毛玻璃视觉 Bug 修复补丁 (左侧栏与按钮)              */
-/* ================================================= */
-/* 1. 拆除左上角突兀的黑色站名区块，融入毛玻璃 */
-.site-brand-container {
-  background: transparent !important; /* 去除死黑背景 */
-}
+/* ---------- 4. 站名与标题 ---------- */
 .site-title {
-  color: #2c3e50 !important; /* 站名文字改为深沉的蓝灰色，保证在浅色背景下依然清晰 */
-  font-weight: bold !important;
+  color: #e0e6ff;
+  font-weight: bold;
+  letter-spacing: 1px;
 }
 .site-subtitle {
-  color: #666 !important;
+  color: #9aa5ce;
 }
-/* 2. 重铸菜单栏区域的底色 */
-.menu {
-  background: transparent !important;
+/* 文章标题 */
+.post-title-link {
+  color: #e0e6ff;
+  transition: color 0.2s ease;
 }
-/* 3. 现代化重构“阅读全文”按钮 */
+.post-title-link:hover {
+  color: #bb9af7;
+}
+/* 正文标题层级更亮，保证结构清晰 */
+.post-body h1,
+.post-body h2,
+.post-body h3,
+.post-body h4 {
+  color: #e0e6ff;
+}
+/* ---------- 5. 引用块：左侧紫条 + 深色底 ---------- */
+blockquote {
+  border-left: 4px solid #bb9af7;
+  background: #24283b;
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+}
+/* ---------- 6. 表格 ---------- */
+table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+th {
+  background: #292e42;
+  color: #e0e6ff;
+}
+td,
+th {
+  border-color: #3b4261 !important;
+}
+/* ---------- 7. 行内代码与代码块 ---------- */
+code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace;
+}
+/* 行内 code 用暗底蓝紫字，醒目但不刺眼 */
+p code,
+li code,
+td code {
+  background: rgba(122,162,247,0.15);
+  color: #89b4fa;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+/* 代码块整体圆角 + 深色描边 */
+.highlight {
+  border-radius: 10px;
+  border: 1px solid #292e42;
+  overflow: hidden;
+}
+/* ---------- 8. 分割线 ---------- */
+hr {
+  background: linear-gradient(to right, transparent, rgba(187,154,247,0.4), transparent);
+  height: 1px;
+  border: none;
+}
+/* ---------- 9. 滚动条（WebKit） ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1b26;
+}
+::-webkit-scrollbar-thumb {
+  background: #3b4261;
+  border-radius: 6px;
+  border: 2px solid #1a1b26;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7aa2f7;
+}
+/* ---------- 10. 阅读全文按钮 ---------- */
 .btn {
-  background: rgba(255,255,255,0.4) !important; /* 半透明底 */
-  border: 1px solid rgba(255,255,255,0.8) !important; /* 玻璃反光高光边 */
-  border-radius: 8px !important; /* 呼应卡片的圆角 */
-  color: #555 !important;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.03) !important;
-  transition: all 0.3s ease !important;
+  border-radius: 8px;
+  transition: all 0.25s ease;
 }
 .btn:hover {
-  background: rgba(255,255,255,0.9) !important; /* 鼠标悬停时变白变亮 */
-  color: #000 !important;
-  transform: scale(1.05) !important; /* 悬停时微微放大，增加点击欲望 */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(122,162,247,0.25);
+}
+/* ---------- 11. 分页器 ---------- */
+.pagination .page-number.current {
+  background: #7aa2f7;
+  color: #1a1b26;
+  border-radius: 6px;
+}
+/* ---------- 12. 目录(TOC)当前项高亮 ---------- */
+.sidebar .nav-item .active,
+.post-toc .nav .active > a {
+  color: #bb9af7;
+  border-left-color: #bb9af7;
+}
+/* ---------- 13. 页脚 ---------- */
+.footer {
+  color: #9aa5ce;
+}
+/* ---------- 14. 正文阅读体验增强 ---------- */
+/* 字号放大 + 行距放宽 + 轻微字间距，中文长文更透气 */
+.post-body {
+  font-size: 16.5px;
+  line-height: 2.05;
+  letter-spacing: 0.3px;
+  color: #d3daf5;
+}
+/* 段落之间留出更清晰的呼吸感 */
+.post-body p {
+  margin-bottom: 1.2em;
+}
+/* 加粗文字再提亮一档，重点更醒目 */
+.post-body strong,
+.post-body b {
+  color: #eef1ff;
+  font-weight: 700;
+}
+/* 正文与卡片背景拉开亮度差：卡片稍微压暗，文字相对更突出 */
+.post-block {
+  background: #1d2133;
+}
+/* 首页摘要与文章页保持一致的正文观感 */
+.posts-expand .post-body {
+  color: #d3daf5;
 }

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxm777.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"tokyo-night-dark","dark":"tokyo-night-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"show_result":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="0x00 前言把 AI 用在渗透测试上，试过的人大多会踩到同样的坑：它很会写 payload，但没有纪律（上来就对着目标狂轰滥炸）、没有记忆（每次会话从零开始，上周踩过的坑这周再踩一遍）、没有边界（不知道什么能测什么不能测，也不知道什么时候该停）。 我的解决方案是把这些约束全部固化到一个工作目录里，让 AI 在这个目录里按既定规则工作——方法论写在配置里，经验沉淀在知识库里，进度落盘在工作区里，红">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI辅助渗透工作流的设计：AI-SRC工作目录详解">
+<meta property="og:url" content="https://wxm777.github.io/post/d448f22a/index.html">
+<meta property="og:site_name" content="smile cat的博客">
+<meta property="og:description" content="0x00 前言把 AI 用在渗透测试上，试过的人大多会踩到同样的坑：它很会写 payload，但没有纪律（上来就对着目标狂轰滥炸）、没有记忆（每次会话从零开始，上周踩过的坑这周再踩一遍）、没有边界（不知道什么能测什么不能测，也不知道什么时候该停）。 我的解决方案是把这些约束全部固化到一个工作目录里，让 AI 在这个目录里按既定规则工作——方法论写在配置里，经验沉淀在知识库里，进度落盘在工作区里，红">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-12T02:00:00.000Z">
+<meta property="article:author" content="smile cat">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="工作流">
+<meta property="article:tag" content="工程化">
+<meta property="article:tag" content="渗透测试">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://wxm777.github.io/post/d448f22a/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://wxm777.github.io/post/d448f22a/","path":"post/d448f22a/","title":"AI辅助渗透工作流的设计：AI-SRC工作目录详解"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>AI辅助渗透工作流的设计：AI-SRC工作目录详解 | smile cat的博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="smile cat的博客" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">smile cat的博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x00-%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">0x00 前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01-%E5%85%A8%E5%B1%80%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BA%94%E5%B1%82%E5%88%86%E5%B7%A5"><span class="nav-number">2.</span> <span class="nav-text">0x01 全局架构：五层分工</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84%E6%80%BB%E8%A7%88"><span class="nav-number">3.</span> <span class="nav-text">0x02 目录结构总览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-%E5%B7%A5%E4%BD%9C%E5%8C%BA%EF%BC%9A%E4%B8%80%E5%88%87%E4%BA%A7%E7%89%A9%E8%90%BD%E7%9B%98"><span class="nav-number">4.</span> <span class="nav-text">0x03 工作区：一切产物落盘</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-%E7%9F%A5%E8%AF%86%E5%BA%93%E4%B8%89%E5%B1%82%EF%BC%9A%E8%AE%A9%E7%BB%8F%E9%AA%8C%E6%8C%89%E4%BD%BF%E7%94%A8%E9%A2%91%E7%8E%87%E5%88%86%E5%B1%82"><span class="nav-number">5.</span> <span class="nav-text">0x04 知识库三层：让经验按使用频率分层</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-%E8%AE%B0%E5%BF%86%E7%B3%BB%E7%BB%9F%EF%BC%9A%E9%AA%A8%E6%9E%B6%E3%80%81%E8%87%AA%E6%88%91%E8%AE%A4%E7%9F%A5%E3%80%81%E5%8F%8D%E9%A6%88%E8%A7%84%E5%88%99"><span class="nav-number">6.</span> <span class="nav-text">0x05 记忆系统：骨架、自我认知、反馈规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x06-%E5%90%88%E8%A7%84%E4%B8%8E%E8%BE%B9%E7%95%8C%EF%BC%9A%E7%BA%A2%E7%BA%BF%E6%98%AF%E9%85%8D%E7%BD%AE%EF%BC%8C%E4%B8%8D%E6%98%AF%E5%8F%A3%E5%8F%B7"><span class="nav-number">7.</span> <span class="nav-text">0x06 合规与边界：红线是配置，不是口号</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x07-%E5%B7%A5%E5%85%B7%E9%93%BE%EF%BC%9A%E5%85%A8%E9%83%A8-CLI%EF%BC%8C%E7%B4%A2%E5%BC%95%E8%BF%9B-tools-README-md"><span class="nav-number">8.</span> <span class="nav-text">0x07 工具链：全部 CLI，索引进 tools&#x2F;README.md</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x08-%E5%AE%9E%E6%88%98%E6%95%88%E6%9E%9C"><span class="nav-number">9.</span> <span class="nav-text">0x08 实战效果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x09-%E6%80%BB%E7%BB%93"><span class="nav-number">10.</span> <span class="nav-text">0x09 总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="smile cat"
+      src="/images/wxm.jpg">
+  <p class="site-author-name" itemprop="name">smile cat</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wxm777" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wxm777" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wxm777.github.io/post/d448f22a/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/wxm.jpg">
+      <meta itemprop="name" content="smile cat">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="AI辅助渗透工作流的设计：AI-SRC工作目录详解 | smile cat的博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AI辅助渗透工作流的设计：AI-SRC工作目录详解
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-09-12 10:00:00" itemprop="dateCreated datePublished" datetime="2026-09-12T10:00:00+08:00">2026-09-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%96%B9%E6%B3%95%E8%AE%BA/" itemprop="url" rel="index"><span itemprop="name">方法论</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>6 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="0x00-前言"><a href="#0x00-前言" class="headerlink" title="0x00 前言"></a>0x00 前言</h2><p>把 AI 用在渗透测试上，试过的人大多会踩到同样的坑：它很会写 payload，但<strong>没有纪律</strong>（上来就对着目标狂轰滥炸）、<strong>没有记忆</strong>（每次会话从零开始，上周踩过的坑这周再踩一遍）、<strong>没有边界</strong>（不知道什么能测什么不能测，也不知道什么时候该停）。</p>
+<p>我的解决方案是把这些约束全部固化到一个工作目录里，让 AI 在这个目录里按既定规则工作——方法论写在配置里，经验沉淀在知识库里，进度落盘在工作区里，红线钉死在合规文件里。这套系统叫 AI-SRC，跑在 Claude Code 上，目前已在教育 SRC 和公司授权测试两类真实任务中使用。</p>
+<p>这篇文章把整套工作目录拆开讲清楚：为什么这么设计、每个目录干什么、规则怎么约束 AI。</p>
+<span id="more"></span>
+
+<h2 id="0x01-全局架构：五层分工"><a href="#0x01-全局架构：五层分工" class="headerlink" title="0x01 全局架构：五层分工"></a>0x01 全局架构：五层分工</h2><p>整套系统的方法论骨架是五层架构，写在根目录的 <code>CLAUDE.md</code> 里：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">S1 探测层 (0-2min, 低成本)</span><br><span class="line">  → 浏览器看页面 + 指纹识别 + 秒杀探测，收集信号，一击即走不深入</span><br><span class="line">S2 战略层 (1-15min, 中等成本)</span><br><span class="line">  → 世界模型：系统架构/数据模型/鉴权边界</span><br><span class="line">  → 骨架匹配 + 好奇心引擎 → 输出假设优先级 P0/P1/P2</span><br><span class="line">S3 战术层 (1-60min, 高成本)</span><br><span class="line">  → 模拟人工测试：浏览器 MCP 操控页面 + Burp MCP 抓包重放</span><br><span class="line">  → 每个假设返回结构化结果，反馈给 S2 串联攻击链</span><br><span class="line">A1 学习层</span><br><span class="line">  → 挖洞后复盘（/rem）、读文章学习（/stu），知识库增量更新</span><br><span class="line">A2 记忆层</span><br><span class="line">  → 进度落盘（/me）、骨架库积累、自我认知统计</span><br></pre></td></tr></table></figure>
+
+<p>设计要点有三个：</p>
+<ol>
+<li><strong>成本分层</strong>：S1 便宜，可以广撒网；S3 贵，必须等 S2 排好优先级再投入。AI 最容易犯的错就是不分轻重全程高成本乱撞，分层就是治这个的。</li>
+<li><strong>开场强制序列</strong>：收到目标后必须按序执行——建工作区 → S1 固定流程（人工走站、指纹识别、接口提取、结果判读）→ 向人简报结论——之后才能进入 S2&#x2F;S3。未完成信息收集前，禁止任何漏洞测试动作，连秒杀卡都不许打。这条是为了防止 AI 看到登录框就直接开始注。</li>
+<li><strong>假设驱动而不是 payload 驱动</strong>：S2 的产出是排好优先级的假设清单（P0 立即验证 &#x2F; P1 批量测试 &#x2F; P2 记录备忘），每个 P0&#x2F;P1 必须能预答”利用方法 + 能拿到什么”，答不出不立项。AI 不能”顺手试试”，只能”验证假设”。</li>
+</ol>
+<h2 id="0x02-目录结构总览"><a href="#0x02-目录结构总览" class="headerlink" title="0x02 目录结构总览"></a>0x02 目录结构总览</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">E:\AI-SRC-cc\</span><br><span class="line">├── CLAUDE.md            # 通用方法论底座（所有模式共享）</span><br><span class="line">├── .mcp.json            # MCP 配置：Playwright(浏览器) + Burp</span><br><span class="line">├── edusrc/              # 模式一：教育 SRC 挖洞</span><br><span class="line">│   ├── CLAUDE.md        # 该模式特有规则（红线/价值过滤/报告格式）</span><br><span class="line">│   ├── workspaces/      # 每个目标一个工作区</span><br><span class="line">│   └── report/          # 报告总索引</span><br><span class="line">├── pentest/             # 模式二：公司授权测试</span><br><span class="line">│   ├── CLAUDE.md        # scope.md 强制、扫描器调度、低危全覆盖</span><br><span class="line">│   ├── 低危检测清单.md / 渗透报告模板.md</span><br><span class="line">│   ├── workspaces/</span><br><span class="line">│   └── report/</span><br><span class="line">├── kb/                  # 知识库（三层）</span><br><span class="line">│   ├── compliance/      # 合规红线与 SRC 评级规则</span><br><span class="line">│   ├── quick-ref/       # 秒杀卡（≤50 行/张）</span><br><span class="line">│   └── techniques/      # 深度绕过技法（按需加载）</span><br><span class="line">├── skills/              # 决策树（每类漏洞一个文件，≤100 行）</span><br><span class="line">├── memory/              # 记忆系统</span><br><span class="line">│   ├── skeletons/       # 骨架库（同类系统攻击面模板）</span><br><span class="line">│   ├── self-awareness.md  # 命中率与优劣势统计</span><br><span class="line">│   ├── feedback-rules.md  # 用户纠正固化的规则</span><br><span class="line">│   └── task.md / attack_chain.md</span><br><span class="line">└── tools/               # recon / scanner / exploit / dict + README 索引</span><br></pre></td></tr></table></figure>
+
+<p><strong>双模式设计</strong>：<code>edusrc/</code> 和 <code>pentest/</code> 是两个工作模式，各有自己的规则文件。这个设计直接利用了 Claude Code 的加载机制——在 <code>edusrc/</code> 目录启动会话时，Claude Code 会同时加载父目录的 <code>CLAUDE.md</code> 和当前目录的 <code>CLAUDE.md</code>，即”通用底座 + 模式规则”两层自动叠加；共享资源（知识库、工具、记忆）只有一份，模式规则只写差异。规则叠加而不是复制，方法论改一处两边生效。</p>
+<p>早期我在另一个 agent 平台上也维护过一份同源实现，两套规则文本同步的成本很高，九月起全部收敛到 Claude Code 这一套，只维护一份。</p>
+<h2 id="0x03-工作区：一切产物落盘"><a href="#0x03-工作区：一切产物落盘" class="headerlink" title="0x03 工作区：一切产物落盘"></a>0x03 工作区：一切产物落盘</h2><p>每个测试目标一个独立工作区，命名 <code>workspaces/YYYY-MM-DD-目标名/</code>，内部结构固定：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">workspaces/2026-09-04-example/</span><br><span class="line">├── recon.md          # S1 探测记录：指纹/信号/接口清单（边测边记）</span><br><span class="line">├── world-model.md    # S2 世界模型：数据模型/鉴权边界映射/P0P1P2</span><br><span class="line">├── findings.md       # S3 测试记录：每个假设的请求响应+判定</span><br><span class="line">├── report.md         # 漏洞报告：验证一个立刻追加，不等不攒</span><br><span class="line">└── evidence/         # 截图/原始请求响应 dump/Payload 导出</span><br></pre></td></tr></table></figure>
+
+<p>几条强制纪律：</p>
+<ul>
+<li>开测第一步就是建这个文件夹，之后所有笔记和证据只写进这里，任何文件不得散落在根目录；</li>
+<li><code>findings.md</code> 无论有没有挖到洞都要写，没挖到也要记录验证范围和未测项，收工时不得为空；</li>
+<li>每验证一个漏洞立刻写进 <code>report.md</code>，必须含完整请求&#x2F;响应包和可复现 Payload，不允许”先记着回头补”；</li>
+<li>大量原始抓包存 <code>evidence/</code>，findings.md 只放提炼后的关键包，防止文件膨胀到没法读。</li>
+</ul>
+<p>收工后工作区归档到 <code>workspaces/_done/</code>，同时在 <code>report/README.md</code> 总索引里登记一行：目标、漏洞数、高中低危分布、收工原因。<strong>零发现的目标也要登记收工原因</strong>——比如”三接口参数化 + 雷池全拦，无洞”、”验证码闸门有效，注入点不可达”。九月上旬教育 SRC 实测的 18 个目标里，只有两个出了高危，但其余 16 个的收工原因同样有价值：下次遇到同类系统，先看索引就知道哪些路已经趟过、死在哪儿，不重复投入。</p>
+<h2 id="0x04-知识库三层：让经验按使用频率分层"><a href="#0x04-知识库三层：让经验按使用频率分层" class="headerlink" title="0x04 知识库三层：让经验按使用频率分层"></a>0x04 知识库三层：让经验按使用频率分层</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kb/</span><br><span class="line">├── compliance/     # 合规红线 + SRC 评级规则（每次任务前必读）</span><br><span class="line">├── quick-ref/      # 秒杀卡：≤50 行/张，S1 阶段用，30 秒查完</span><br><span class="line">└── techniques/     # 深度技法：S3 绕过用，按需加载</span><br><span class="line">skills/             # 决策树：每类漏洞一文件，≤100 行，S2/S3 用</span><br></pre></td></tr></table></figure>
+
+<p>分层的逻辑是<strong>加载成本</strong>：AI 的上下文是稀缺资源，不能把所有知识一次性塞进去。S1 阶段只需要快速判据，秒杀卡限制 50 行以内；S2&#x2F;S3 需要验证路径，决策树给到 100 行；深度绕过手法最多最杂，做成按需加载的 techniques，卡壳时才读对应那一篇。</p>
+<p>两个配套机制：</p>
+<ul>
+<li><strong>quick-ref 的索引是决策表</strong>：<code>_index.md</code> 里不是文件列表，而是”S1 发现 → 加载哪张卡 → 打什么动作”的映射，比如”参数含 id&#x2F;user&#x2F;uid → idor 卡”、”参数值在响应中回显 → xss 卡”、”参数含 search&#x2F;query → sqli 卡”。索引同时写明使用限定：卡片只在流程走到对应阶段时加载，禁止拿到目标逐项测试。</li>
+<li><strong>skills 按需生长，不预写教科书</strong>：索引里规划了十几类漏洞的决策树，但实际只创建了 3 个——idor、sql-injection、getshell，都是实战踩过坑之后才沉淀的。规则写明了”skill 文件不存在时直接按模型能力测试，不受阻”，知识库随实战自然生长，而不是先抄一遍教科书。</li>
+</ul>
+<p>内容上只沉淀三样东西：实战踩坑的对策、从文章里学到的新手法、防遗漏检查清单。比如 <code>skills/sql-injection.md</code> 里没有”什么是 SQL 注入”，只有”前置条件 → 快速判定表 → 各数据库的绕过分支 → 防遗漏项”。</p>
+<h2 id="0x05-记忆系统：骨架、自我认知、反馈规则"><a href="#0x05-记忆系统：骨架、自我认知、反馈规则" class="headerlink" title="0x05 记忆系统：骨架、自我认知、反馈规则"></a>0x05 记忆系统：骨架、自我认知、反馈规则</h2><p>这是整个系统里我觉得最有价值的部分，目前有三个产物。</p>
+<p><strong>骨架库</strong>（<code>memory/skeletons/</code>）：把每类系统的攻击面模式抽象成模板——框架指纹、常见接口、数据模型、鉴权模式、典型攻击链、开发者犯错模式，再打行业标签。目前积累了 7 个，比如：</p>
+<blockquote>
+<p><strong>教育系统 com.seaz + Acegi 老栈</strong>（高置信度，实战来源）：ECCustom 自定义 JSP 双编码注入 &#x2F; 运算符优先级闭合免注释符 &#x2F; ServiceAction 反射分发 &#x2F; File 组件未授权上传面</p>
+</blockquote>
+<p>下次再遇到同栈系统，S2 阶段直接匹配骨架，历史攻击链立刻变成新目标的假设候选。骨架按置信度分级：实战验证 &#x3D; 高，可直接套用；文章学习 &#x3D; 低，仅作参考。总数限制 20 个以内，防止无限膨胀变成噪音。</p>
+<p><strong>自我认知</strong>（<code>memory/self-awareness.md</code>）：AI 统计自己的命中率和优劣势，分三块——命中率表（按漏洞类型计数，统计口径写明”按实际执行了判定的假设计数，非按目标数”，没有完整分母不编造命中率）；优势模式（实战中验证过的可复用攻击链，比如”WAF 精确拦函数名就逐函数探测找漏网等价函数”、”渲染通道外带”）；已知盲区（比如”雷池语义引擎对新部署无有效绕过手段，遇到先判参数化而不是投入绕过研究”）。这份文件的作用是让 AI 对自身能力边界有量化记录，减少没有依据的高估。</p>
+<p><strong>反馈规则</strong>（<code>memory/feedback-rules.md</code>）：把人纠正过的行为固化成跨会话规则。比如”工具或 MCP 调用失败时立即汇报原始错误并暂停，不许用替代工具默默绕路”、”浏览器环境准备是 AI 的职责，不要列成用户的手工步骤”。每条都附来源（哪次任务、什么原因被纠正）。AI 被纠正一次是对话级记忆，写进这个文件才是系统级修复。</p>
+<p>三个约定命令贯穿其中：</p>
+<ul>
+<li><code>/me</code>：进度落盘，把当前任务状态写完再走；</li>
+<li><code>/rem</code>：完整复盘，增量更新四个产物（秒杀卡 &#x2F; 决策树 &#x2F; 骨架 &#x2F; 自我认知），并检查重复冲突——相同来源更新原条目，不追加重复经验；</li>
+<li><code>/stu &lt;url&gt;</code>：学习一篇文章，提取新 payload &#x2F; 攻击链 &#x2F; 骨架写入知识库。</li>
+</ul>
+<h2 id="0x06-合规与边界：红线是配置，不是口号"><a href="#0x06-合规与边界：红线是配置，不是口号" class="headerlink" title="0x06 合规与边界：红线是配置，不是口号"></a>0x06 合规与边界：红线是配置，不是口号</h2><p>AI 做渗透，最不能妥协的是边界。这套系统把边界写成了三层可执行的配置：</p>
+<p><strong>第一层，通用底线</strong>（根底座，所有模式不可突破）：最小必要原则；凭据类数据（口令哈希&#x2F;密钥&#x2F;token）任何情况下不读取不提取；植入后门、删除操作、影响真实用户、大规模拖库绝对禁止；写入操作必须先经人确认。</p>
+<p><strong>第二层，模式收紧</strong>。两个模式的收紧方向完全不同，这恰好体现了分层的好处：</p>
+<ul>
+<li>edusrc：禁用一切主动扫描器（<code>tools/scanner/</code> 下 nuclei&#x2F;afrog&#x2F;xray&#x2F;fscan 等一律锁死，只允许 <code>tools/recon/</code> 只读探测）；SQL 注入只允许只读深入验证；目标归属存疑先问人再动手。</li>
+<li>pentest：开工前必须把授权信息落盘成 <code>scope.md</code>（授权时间窗、目标清单、允许动作、白名单状态、禁止动作），信息不全不允许开测；任何超出 scope 的动作一律先问人。扫描器在这个模式放开，但有独立的 S1.5 调度层：限速、时间窗、白名单确认是每次扫描前必过的前提检查，且<strong>扫描命中绝不直接进报告</strong>——全部进”待复核清单”，人工重现确认后才算数，误报也记录（防重复复核）。</li>
+</ul>
+<p><strong>第三层，价值过滤</strong>，同样按模式分化：edusrc 按 SRC 平台收录规则过滤，平台明确忽略的类型（Self-XSS、无敏感 CSRF、纯 DoS 等）直接淘汰不测，注入类必须能预答”实际能取出什么数据”，答不出不立项；pentest 反过来要求低危全覆盖——信息泄露、配置错误这些 SRC 忽略类，客户报告需要，一项不许丢，配套有专门的低危检测清单逐项过。</p>
+<p>还有一条行为规范贯穿始终：<strong>工具失败立即汇报，不用替代工具默默绕路；遇到需要人工的环节（验证码、登录确认）立即暂停等人</strong>。AI 的”自主性”被严格限制在执行层，所有涉及判断和边界的节点都回到人手里。</p>
+<h2 id="0x07-工具链：全部-CLI，索引进-tools-README-md"><a href="#0x07-工具链：全部-CLI，索引进-tools-README-md" class="headerlink" title="0x07 工具链：全部 CLI，索引进 tools/README.md"></a>0x07 工具链：全部 CLI，索引进 <code>tools/README.md</code></h2><p><code>tools/</code> 按职责分组：<code>recon/</code>（只读探测，httpx&#x2F;P1finger&#x2F;URLFinder&#x2F;dirsearch&#x2F;wafw00f 等）、<code>scanner/</code>（主动扫描，仅 pentest 模式可用）、<code>exploit/</code>（定向利用，ysoserial&#x2F;shiro&#x2F;weblogic&#x2F;fastjson 等，指纹命中才触发）、<code>dict/</code>（字典库，按 web&#x2F;子域名&#x2F;参数名&#x2F;口令分类）。</p>
+<p><code>tools/README.md</code> 是总索引：每个工具的调用命令、输出格式、适用场景、注意事项都写死，AI 先查索引再调用，不许猜参数。几个关键约定：</p>
+<ul>
+<li><strong>recon 与 scanner 物理分开</strong>：edusrc 模式下 scanner 整个目录禁用，从目录结构上隔离越权可能，不靠自觉；</li>
+<li><strong>高价值指纹必须交叉确认</strong>：Shiro、Struts2 这类带 N-Day 的组件，单个指纹工具的规则匹配可能误报，要求多个指纹工具结果一致才写入世界模型——单工具误报不进入决策链；</li>
+<li><strong>GUI 工具禁止拆解改造</strong>：没有 CLI 覆盖的组件（struts2&#x2F;thinkphp&#x2F;若依&#x2F;OA 综合等），主动提醒用户去本地工具箱手动跑对应 GUI 工具，不沉默跳过、不自造轮子；</li>
+<li><strong>浏览器与 Burp 是固定环境</strong>：浏览器控制走 Playwright MCP 桥模式（Chrome 扩展直连真实浏览器，复用登录态），Burp MCP 负责抓包重放，配置固定在 <code>.mcp.json</code> 里。任务开始时 AI 自动完成环境准备（带代理参数重启 Chrome、验证 MCP 连通），这不是用户的手工步骤。</li>
+</ul>
+<h2 id="0x08-实战效果"><a href="#0x08-实战效果" class="headerlink" title="0x08 实战效果"></a>0x08 实战效果</h2><p>这套系统九月上旬在教育 SRC 跑了 18 个目标，产出两个高危链：一个 SQL 注入拖取 1.4 万条新生信息（双 URL 编码绕过全局过滤器），一个 API 网关多实例鉴权不一致泄露 5.2 万条学生信息并升级为账号接管——每个漏洞从 S1 信号、S2 假设、S3 验证记录到报告归档，整条链在对应工作区里完整留痕。这两个案例加上一个未授权文件上传，都已在<a href="/post/837d9b56/">前面的复盘文章</a>里单独写过（另两篇：<a href="/post/220d87d5/">文件上传</a>、<a href="/post/661ffc73/">网关鉴权不一致</a>）。</p>
+<p>pentest 模式也在九月上旬的一次企业内网授权测试中实际跑过一遍：scope.md 落盘、S1.5 扫描器调度、低危清单逐项覆盖、按模板出客户报告，流程完整走通。</p>
+<p>值得一提的是零发现目标的价值：18 个教育 SRC 目标里 16 个无洞，但每个都沉淀了东西——“雷池全拦时的缺参 500 证伪法”、”函数白名单注入防护的识别特征”、”瑞数类 WAF 下大字典扫描会封 IP”。这些进了骨架库和自我认知，下一次同类目标的 S2 直接受益。无洞不等于无产出，这是这套落盘纪律带来的复利。</p>
+<h2 id="0x09-总结"><a href="#0x09-总结" class="headerlink" title="0x09 总结"></a>0x09 总结</h2><p>这套工作目录解决的三个问题，回头看对应三个设计决策：</p>
+<ol>
+<li><strong>纪律</strong> → 分层架构 + 假设驱动 + 开场强制序列：AI 不能乱来，信息收集没做完不许测漏洞，每个测试动作挂在排好优先级的假设上；</li>
+<li><strong>记忆</strong> → 工作区落盘 + 骨架库 + 自我认知 + 反馈规则：每次会话从落盘文件恢复现场，经验和教训以结构化形式跨会话复用；</li>
+<li><strong>边界</strong> → 三层合规配置 + 工具目录物理隔离 + 失败即停汇报：红线写在 AI 必读的配置里，而不是指望它自觉。</li>
+</ol>
+<p>AI 在渗透里的价值不是”更快的扫描器”，而是一个可以被工程化约束的执行者——给它方法论、记忆和边界，它负责执行和记录证据链。这套工作目录就是这些约束的载体。</p>
+<p>方法论上借鉴了 <a target="_blank" rel="noopener" href="https://github.com/GreyDGL/PentestGPT">PentestGPT</a>（假设任务树与上下文续接）、<a target="_blank" rel="noopener" href="https://github.com/0xSteph/pentest-ai-agents">pentest-ai-agents</a>（验证职责与证据记录）和 <a target="_blank" rel="noopener" href="https://github.com/KeygraphHQ/shannon">Shannon</a>（候选去重与验证后入报告）的思路，本地实现未引入它们的执行器，有兴趣可以对比阅读。</p>
+<hr>
+<p><em>本工作流仅用于授权目标（SRC 平台规则或书面授权），所有红线配置以”模式规则可收紧不可突破”为原则。</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/AI/" rel="tag"># AI</a>
+              <a href="/tags/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/" rel="tag"># 渗透测试</a>
+              <a href="/tags/%E5%B7%A5%E4%BD%9C%E6%B5%81/" rel="tag"># 工作流</a>
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%8C%96/" rel="tag"># 工程化</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/661ffc73/" rel="prev" title="未授权访问复盘：API网关多实例鉴权不一致致5万条学生信息泄露">
+                  <i class="fa fa-angle-left"></i> 未授权访问复盘：API网关多实例鉴权不一致致5万条学生信息泄露
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/d21fcb30/" rel="next" title="AI渗透工作流的信息收集层重构：从工具驱动到信号驱动">
+                  AI渗透工作流的信息收集层重构：从工具驱动到信号驱动 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">smile cat</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">36k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">33 分钟</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
